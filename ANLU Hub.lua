@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - FIXED WEATHER RENDERING ENGINE
+-- ANLU Hub(Rivals) - COMPREHENSIVE WEATHER ENGINE FIX
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -88,17 +88,17 @@ EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = fals
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. WORLD EFFECTS TAB - RENDERING FIXED ]
+-- [ 4. WORLD EFFECTS TAB - PHYSICS FIXED ]
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
 
--- 가상 기후 컨테이너 생성 (Workspace 기반으로 우회하여 증발 현상 방지)
+-- 가상 기후 파트 재생성 및 보안 우회 최적화
 local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
 if not weatherAnchor then
     weatherAnchor = Instance.new("Part")
     weatherAnchor.Name = "ANLU_WeatherZone"
-    weatherAnchor.Size = Vector3.new(80, 1, 80)
+    weatherAnchor.Size = Vector3.new(100, 1, 100) -- 영역 확장
     weatherAnchor.Transparency = 1
     weatherAnchor.Anchored = true
     weatherAnchor.CanCollide = false
@@ -115,15 +115,14 @@ WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default =
         if not snowPE then
             snowPE = Instance.new("ParticleEmitter")
             snowPE.Name = "ANLU_Snow"
-            -- 로블록스 순정 기본 눈꽃 텍스처로 대체하여 유실율 제로화
             snowPE.Texture = "rbxassetid://1084991211" 
-            snowPE.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0.2)})
-            snowPE.Lifetime = NumberRange.new(3, 5)
-            snowPE.Rate = 150
-            snowPE.Speed = NumberRange.new(15, 25)
-            snowPE.SpreadAngle = Vector2.new(20, 20)
-            snowPE.VelocityInverse = false
-            snowPE.Acceleration = Vector3.new(0, -5, 0)
+            snowPE.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0.3)})
+            snowPE.Lifetime = NumberRange.new(2, 4)
+            snowPE.Rate = 200
+            snowPE.Speed = NumberRange.new(20, 35)
+            snowPE.SpreadAngle = Vector2.new(30, 30)
+            snowPE.LockedToPart = true -- [핵심] 플레이어 이동 시 입자가 유실되는 현상 방지
+            snowPE.Acceleration = Vector3.new(0, -10, 0)
             snowPE.Parent = weatherAnchor
         end
     else
@@ -137,14 +136,14 @@ WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default =
         if not rainPE then
             rainPE = Instance.new("ParticleEmitter")
             rainPE.Name = "ANLU_Rain"
-            -- 가시성이 매우 높은 순정 드롭릿 에셋 적용
             rainPE.Texture = "rbxassetid://363276166" 
-            rainPE.Size = NumberSequence.new(0.15)
+            rainPE.Size = NumberSequence.new(0.2)
             rainPE.Lifetime = NumberRange.new(1, 1.5)
-            rainPE.Rate = 400
-            rainPE.Speed = NumberRange.new(80, 110)
-            snowPE.SpreadAngle = Vector2.new(5, 5)
-            rainPE.Acceleration = Vector3.new(-10, -40, 0)
+            rainPE.Rate = 500 -- 초당 드롭릿 생성량 업그레이드
+            rainPE.Speed = NumberRange.new(90, 130)
+            rainPE.SpreadAngle = Vector2.new(10, 10) -- [오타수정] 기존 코드의 snowPE 오타 해결
+            rainPE.LockedToPart = true -- [핵심] 무조건 플레이어 머리 위로만 내리도록 고정
+            rainPE.Acceleration = Vector3.new(-15, -50, 0)
             rainPE.Parent = weatherAnchor
         end
     else
@@ -654,10 +653,10 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = false
     end
     
-    -- 기후 유실 방지 전용 위치 트래킹 로직 (플레이어 정수리 위 30스터드 상공 고정)
+    -- 플레이어 시야 정수리 상공 25 유닛에 정확하게 컨테이너 고정
     if weatherAnchor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myHrp = LocalPlayer.Character.HumanoidRootPart
-        weatherAnchor.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, 30, 0))
+        weatherAnchor.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, 25, 0))
     end
     
     pcall(updateEsp)
