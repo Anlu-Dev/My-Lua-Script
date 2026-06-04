@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - ENGLISH & BALANCED LAYOUT EDITION
+-- ANLU Hub(Rivals) - FIXED & BALANCED ENGLISH EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -23,21 +23,21 @@ local Tabs = {
 }
 
 -- =============================================================================
--- [ 1. MAIN COMBAT TAB - BALANCED LAYOUT ]
+-- [ 1. MAIN COMBAT TAB - PERFECT BALANCE ]
 -- =============================================================================
--- Left Column (Aimbot & Rage Bot)
+
+-- Left Column: Aimbot & Rage Bot (이동 배치로 좌우 균형 맞춤)
 local AimbotTab = Tabs.Main:AddLeftGroupbox('Camera Lock-on Aimbot')
 AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = false })
 AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
 AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = 'Target Part' })
 
--- Moved to Left Groupbox to balance the UI layout perfectly
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 RageMainBox:AddToggle('VoidSpamToggle', { Text = 'Void Spam (Anti-Hitbox)', Default = false })
 
--- Right Column (Silent Aim & Anti-Aim)
+-- Right Column: Silent Aim & Anti-Aim
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
 SilentTab:AddToggle('WallBang', { Text = 'Wall Bang (Penetration)', Default = true })
@@ -103,7 +103,8 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, false, nil
+-- 전역 테이블 변수 안전하게 초기화 확인
+local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking = false
 local isRightMouseDown = false
 local espCache = {}
@@ -114,12 +115,13 @@ FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
 
 UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfJumpToggle.Value and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+    if Toggles and Toggles.InfJumpToggle and Toggles.InfJumpToggle.Value and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
 local function getClosestPlayerToMous()
+    if not Options or not Options.Radius then return nil end
     local target = nil
     local maxDist = Options.Radius.Value
     local mousePos = UserInputService:GetMouseLocation()
@@ -129,7 +131,7 @@ local function getClosestPlayerToMous()
             local hrp = p.Character.HumanoidRootPart
             local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             
-            if onScreen or Toggles.WallBang.Value then
+            if onScreen or (Toggles.WallBang and Toggles.WallBang.Value) then
                 local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                 if dist < maxDist then
                     maxDist = dist
@@ -224,6 +226,7 @@ local function drawBoneLine(line, part1, part2)
 end
 
 local function updateEsp()
+    if not Toggles or not Options then return end
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
         
@@ -256,7 +259,7 @@ local function updateEsp()
                     local sizeX = sizeY * 0.65
                     local boxPos = Vector2.new(topScreen.X - (sizeX / 2), topScreen.Y)
 
-                    if Toggles.EspBox.Value then
+                    if Toggles.EspBox and Toggles.EspBox.Value then
                         drawings.Box.Size = Vector2.new(sizeX, sizeY)
                         drawings.Box.Position = boxPos
                         drawings.Box.Color = Options.BoxColor.Value
@@ -265,7 +268,7 @@ local function updateEsp()
                         drawings.Box.Visible = false
                     end
 
-                    if Toggles.EspFill.Value then
+                    if Toggles.EspFill and Toggles.EspFill.Value then
                         drawings.Fill.Size = Vector2.new(sizeX, sizeY)
                         drawings.Fill.Position = boxPos
                         drawings.Fill.Color = Options.FillColor.Value
@@ -274,7 +277,7 @@ local function updateEsp()
                         drawings.Fill.Visible = false
                     end
 
-                    if Toggles.EspHealthBar.Value then
+                    if Toggles.EspHealthBar and Toggles.EspHealthBar.Value then
                         local healthPercent = humanoid.Health / humanoid.MaxHealth
                         local barHeight = sizeY * healthPercent
                         local barPos = Vector2.new(boxPos.X - 6, boxPos.Y)
@@ -292,7 +295,7 @@ local function updateEsp()
                         drawings.HealthBar.Visible = false
                     end
 
-                    if Toggles.EspSkeleton.Value then
+                    if Toggles.EspSkeleton and Toggles.EspSkeleton.Value then
                         local boneColor = Options.SkeletonColor.Value
                         for _, line in ipairs(drawings.Bones) do line.Color = boneColor line.Visible = false end
                         
@@ -337,7 +340,7 @@ local function updateEsp()
                         for _, line in ipairs(drawings.Bones) do line.Visible = false end
                     end
 
-                    if Toggles.EspName.Value or Toggles.EspDistance.Value then
+                    if (Toggles.EspName and Toggles.EspName.Value) or (Toggles.EspDistance and Toggles.EspDistance.Value) then
                         drawings.TopGui.Adornee = head
                         drawings.TopGui.StudsOffset = Vector3.new(0, 4.0, 0)
                         local finalString = ""
@@ -391,17 +394,20 @@ end
 
 Players.PlayerRemoving:Connect(function(player)
     if espCache[player] then
-        espCache[player].Box:Destroy()
-        espCache[player].Fill:Destroy()
-        espCache[player].HealthOutline:Destroy()
-        espCache[player].HealthBar:Destroy()
-        if espCache[player].TopGui then espCache[player].TopGui:Destroy() end
-        for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
+        pcall(function()
+            espCache[player].Box:Destroy()
+            espCache[player].Fill:Destroy()
+            espCache[player].HealthOutline:Destroy()
+            espCache[player].HealthBar:Destroy()
+            if espCache[player].TopGui then espCache[player].TopGui:Destroy() end
+            for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
+        end)
         espCache[player] = nil
     end
 end)
 
 local function updateAimbot(dt)
+    if not Toggles or not Toggles.AimbotEnabled then return end
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
         local targetPlayer = getClosestPlayerToMous()
         if targetPlayer and targetPlayer.Character then
@@ -417,6 +423,7 @@ local function updateAimbot(dt)
 end
 
 local function updateMovement(dt)
+    if not Toggles or not Options then return end
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -430,9 +437,9 @@ local function updateMovement(dt)
 
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     
-    local strafe = Toggles.StrafeToggle.Value
-    local orbit = Toggles.OrbitToggle.Value
-    local void = Toggles.VoidSpamToggle.Value
+    local strafe = Toggles.StrafeToggle and Toggles.StrafeToggle.Value
+    local orbit = Toggles.OrbitToggle and Toggles.OrbitToggle.Value
+    local void = Toggles.VoidSpamToggle and Toggles.VoidSpamToggle.Value
 
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
     local isStrafeActive = false
@@ -470,7 +477,7 @@ local function updateMovement(dt)
         lastNormalCFrame = hrp.CFrame
     end
 
-    if Toggles.AntiAimToggle.Value and lastNormalCFrame then
+    if Toggles.AntiAimToggle and Toggles.AntiAimToggle.Value and lastNormalCFrame then
         antiAimAngle = antiAimAngle + (Options.AntiAimSpeed.Value * dt)
         local mode = Options.AntiAimMode.Value
         local aaRotation = CFrame.Identity
@@ -515,17 +522,17 @@ mt.__namecall = newcclosure(function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
     
-    if Toggles.SilentEnabled.Value and self.Name == "UseItem" and method == "FireServer" then
+    if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and self.Name == "UseItem" and method == "FireServer" then
         if math.random(1, 100) <= Options.HitChance.Value then
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
-                local partName = Toggles.ClosestPart.Value and "Head" or "HumanoidRootPart"
+                local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
                 local targetPart = targetPlayer.Character:FindFirstChild(partName)
                 
                 if targetPart and args[3] and args[3]["\001"] then
                     local hitPos = targetPart.Position
                     
-                    if Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         local velocity = targetPlayer.Character.HumanoidRootPart.Velocity
                         hitPos = hitPos + (velocity * 0.135) 
                     end
@@ -550,7 +557,7 @@ end)
 setreadonly(mt, true)
 
 RunService.RenderStepped:Connect(function(dt)
-    if Toggles.ShowFOV.Value then
+    if Toggles and Toggles.ShowFOV and Toggles.ShowFOV.Value then
         FOVCircle.Position = UserInputService:GetMouseLocation()
         FOVCircle.Radius = Options.Radius.Value
         FOVCircle.Visible = true
@@ -558,12 +565,12 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = false
     end
     
-    updateEsp()
-    updateAimbot(dt)
+    pcall(updateEsp)
+    pcall(updateAimbot, dt)
 end)
 
 workspace.DescendantAdded:Connect(function(d) 
-    if Toggles.RageBotToggle.Value and (d.Name:lower():find("bullet") or d.Name:lower():find("projectile") or d:IsA("BasePart")) then
+    if Toggles and Toggles.RageBotToggle and Toggles.RageBotToggle.Value and (d.Name:lower():find("bullet") or d.Name:lower():find("projectile") or d:IsA("BasePart")) then
         if d.Name:lower():find("bullet") or d.Name:lower():find("projectile") then
             task.spawn(function()
                 pcall(function() 
@@ -573,7 +580,7 @@ workspace.DescendantAdded:Connect(function(d)
                 
                 local connection
                 connection = RunService.RenderStepped:Connect(function()
-                    if not d or not d.Parent or not Toggles.RageBotToggle.Value then
+                    if not d or not d.Parent or not Toggles or not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then
                         if connection then connection:Disconnect() end
                         return
                     end
@@ -610,12 +617,15 @@ UserInputService.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end
 end)
 
-local UseItemRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Replication"):WaitForChild("Fighter"):WaitForChild("UseItem")
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5)
+local Replication = Remotes and Remotes:WaitForChild("Replication", 5)
+local Fighter = Replication and Replication:WaitForChild("Fighter", 5)
+local UseItemRemote = Fighter and Fighter:WaitForChild("UseItem", 5)
 
 task.spawn(function()
     while true do
         RunService.Heartbeat:Wait()
-        if Toggles.FastFireToggle.Value and isClicking then
+        if Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking and UseItemRemote then
             local targetPlayer = getClosestPlayerToMous()
             local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
             
@@ -643,22 +653,26 @@ task.spawn(function()
     end
 end)
 
-RunService.Heartbeat:Connect(updateMovement)
+RunService.Heartbeat:Connect(function(dt)
+    pcall(updateMovement, dt)
+end)
 
 -- =============================================================================
 -- [ 7. UI SETTINGS ]
 -- =============================================================================
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload Script', function() 
-    FOVCircle:Destroy() 
-    for _, drawing in pairs(espCache) do
-        drawing.Box:Destroy()
-        drawing.Fill:Destroy()
-        drawing.HealthOutline:Destroy()
-        drawing.HealthBar:Destroy()
-        if drawing.TopGui then drawing.TopGui:Destroy() end
-        for _, line in ipairs(drawing.Bones) do line:Destroy() end
-    end
+    pcall(function()
+        FOVCircle:Destroy() 
+        for _, drawing in pairs(espCache) do
+            drawing.Box:Destroy()
+            drawing.Fill:Destroy()
+            drawing.HealthOutline:Destroy()
+            drawing.HealthBar:Destroy()
+            if drawing.TopGui then drawing.TopGui:Destroy() end
+            for _, line in ipairs(drawing.Bones) do line:Destroy() end
+        end
+    end)
     Library:Unload() 
 end)
 
