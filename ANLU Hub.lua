@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - FIXED TAB HIERARCHY & WORLD EFFECT EDITION
+-- ANLU Hub(Rivals) - FIXED WEATHER RENDERING ENGINE
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -14,12 +14,11 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.1
 })
 
--- [★ 중요] LinoriaLib 탭 생성 오류 방지를 위해 명시적 순차 생성으로 변경
 local Tabs = {}
 Tabs.Main = Window:AddTab('Main')
 Tabs.Player = Window:AddTab('Player')
 Tabs.Visuals = Window:AddTab('Visuals')
-Tabs.World = Window:AddTab('World')  -- 이제 UI 상서 정상적으로 로드됩니다!
+Tabs.World = Window:AddTab('World')
 Tabs.Misc = Window:AddTab('Misc')
 Tabs['UI Settings'] = Window:AddTab('UI Settings')
 
@@ -89,77 +88,67 @@ EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = fals
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. WORLD EFFECTS TAB ]
+-- [ 4. WORLD EFFECTS TAB - RENDERING FIXED ]
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
 
-local snowEmitter, rainEmitter = nil, nil
+-- 가상 기후 컨테이너 생성 (Workspace 기반으로 우회하여 증발 현상 방지)
+local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
+if not weatherAnchor then
+    weatherAnchor = Instance.new("Part")
+    weatherAnchor.Name = "ANLU_WeatherZone"
+    weatherAnchor.Size = Vector3.new(80, 1, 80)
+    weatherAnchor.Transparency = 1
+    weatherAnchor.Anchored = true
+    weatherAnchor.CanCollide = false
+    weatherAnchor.CanTouch = false
+    weatherAnchor.CanQuery = false
+    weatherAnchor.Parent = workspace
+end
+
+local snowPE, rainPE = nil, nil
 
 WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default = false }):OnChanged(function()
     local enabled = Toggles.SnowEffect.Value
-    local camera = workspace.CurrentCamera
-    
     if enabled then
-        if not snowEmitter or not snowEmitter.Parent then
-            local part = Instance.new("Part")
-            part.Size = Vector3.new(50, 1, 50)
-            part.Transparency = 1
-            part.Anchored = true
-            part.CanCollide = false
-            part.Name = "ANLU_SnowPart"
-            part.Parent = camera
-            
-            local pe = Instance.new("ParticleEmitter")
-            pe.Texture = "rbxassetid://12613146430"
-            pe.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0.2)})
-            pe.Lifetime = NumberRange.new(4, 7)
-            pe.Rate = 120
-            pe.Speed = NumberRange.new(5, 15)
-            pe.SpreadAngle = Vector2.new(10, 10)
-            pe.Acceleration = Vector3.new(0, -3, 0)
-            pe.Parent = part
-            
-            snowEmitter = part
+        if not snowPE then
+            snowPE = Instance.new("ParticleEmitter")
+            snowPE.Name = "ANLU_Snow"
+            -- 로블록스 순정 기본 눈꽃 텍스처로 대체하여 유실율 제로화
+            snowPE.Texture = "rbxassetid://1084991211" 
+            snowPE.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0.2)})
+            snowPE.Lifetime = NumberRange.new(3, 5)
+            snowPE.Rate = 150
+            snowPE.Speed = NumberRange.new(15, 25)
+            snowPE.SpreadAngle = Vector2.new(20, 20)
+            snowPE.VelocityInverse = false
+            snowPE.Acceleration = Vector3.new(0, -5, 0)
+            snowPE.Parent = weatherAnchor
         end
     else
-        if snowEmitter then
-            snowEmitter:Destroy()
-            snowEmitter = nil
-        end
+        if snowPE then snowPE:Destroy() snowPE = nil end
     end
 end)
 
 WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default = false }):OnChanged(function()
     local enabled = Toggles.RainEffect.Value
-    local camera = workspace.CurrentCamera
-    
     if enabled then
-        if not rainEmitter or not rainEmitter.Parent then
-            local part = Instance.new("Part")
-            part.Size = Vector3.new(60, 1, 60)
-            part.Transparency = 1
-            part.Anchored = true
-            part.CanCollide = false
-            part.Name = "ANLU_RainPart"
-            part.Parent = camera
-            
-            local pe = Instance.new("ParticleEmitter")
-            pe.Texture = "rbxassetid://14704152501"
-            pe.Size = NumberSequence.new(0.1, 0.1)
-            pe.Lifetime = NumberRange.new(1, 2)
-            pe.Rate = 300
-            pe.Speed = NumberRange.new(60, 90)
-            pe.Acceleration = Vector3.new(-5, -20, 0)
-            pe.Parent = part
-            
-            rainEmitter = part
+        if not rainPE then
+            rainPE = Instance.new("ParticleEmitter")
+            rainPE.Name = "ANLU_Rain"
+            -- 가시성이 매우 높은 순정 드롭릿 에셋 적용
+            rainPE.Texture = "rbxassetid://363276166" 
+            rainPE.Size = NumberSequence.new(0.15)
+            rainPE.Lifetime = NumberRange.new(1, 1.5)
+            rainPE.Rate = 400
+            rainPE.Speed = NumberRange.new(80, 110)
+            snowPE.SpreadAngle = Vector2.new(5, 5)
+            rainPE.Acceleration = Vector3.new(-10, -40, 0)
+            rainPE.Parent = weatherAnchor
         end
     else
-        if rainEmitter then
-            rainEmitter:Destroy()
-            rainEmitter = nil
-        end
+        if rainPE then rainPE:Destroy() rainPE = nil end
     end
 end)
 
@@ -665,11 +654,10 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = false
     end
     
-    if snowEmitter and snowEmitter.Parent then
-        snowEmitter.CFrame = Camera.CFrame * CFrame.new(0, 20, -10)
-    end
-    if rainEmitter and rainEmitter.Parent then
-        rainEmitter.CFrame = Camera.CFrame * CFrame.new(0, 25, -5)
+    -- 기후 유실 방지 전용 위치 트래킹 로직 (플레이어 정수리 위 30스터드 상공 고정)
+    if weatherAnchor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local myHrp = LocalPlayer.Character.HumanoidRootPart
+        weatherAnchor.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, 30, 0))
     end
     
     pcall(updateEsp)
@@ -771,8 +759,7 @@ local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
         FOVCircle:Destroy() 
-        if snowEmitter then snowEmitter:Destroy() end
-        if rainEmitter then rainEmitter:Destroy() end
+        if weatherAnchor then weatherAnchor:Destroy() end
         for _, drawing in pairs(espCache) do
             drawing.Box:Destroy()
             drawing.Fill:Destroy()
