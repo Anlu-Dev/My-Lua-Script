@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (UI LAYOUT & VISIBILITY FIXED)
+-- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (CRITICAL TYPO FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -54,9 +54,8 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & EMOTE TAB ] - ⚠️ 잘림 방지를 위한 UI 레이아웃 재배치
+-- [ 2. PLAYER MOVEMENT & EMOTE TAB ]
 -- =============================================================================
--- 🕺 [EMOTE STUDIO 를 왼쪽 최상단으로 이동하여 무조건 보이게 조정]
 local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
 local selectedEmoteId = 0
@@ -146,7 +145,6 @@ EmoteGroupBox:AddButton('Stop Animation', function()
     end
 end)
 
--- 다른 이동 관련 기능들을 우측 및 아래쪽으로 재정렬
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
 
@@ -665,7 +663,7 @@ local function updateMovement(dt)
             local flipY = (tick() * 30) % 2 == 0 and math.rad(85) or math.rad(-85)
             aaRotation = CFrame.Angles(flipY, antiAimAngle, 0)
         elseif mode == 'Fake Jitter' then
-            local jitter = (tick() * 40) % 2 == 0 Trade union membership and math.rad(180) or math.rad(0)
+            local jitter = (tick() * 40) % 2 == 0 and math.rad(180) or math.rad(0)
             aaRotation = CFrame.Angles(0, math.rad(180) + jitter, math.rad(25))
         end
         lastNormalCFrame = CFrame.new(lastNormalCFrame.Position) * lastNormalCFrame.Rotation * aaRotation
@@ -705,7 +703,7 @@ mt.__namecall = newcclosure(function(self, ...)
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
                 local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
-                local targetPart = targetPlayer.Character:FindFirstChild(partName)
+                local targetPart = targetPart or targetPlayer.Character:FindFirstChild(partName)
                 
                 if targetPart and args[3] and args[3]["\001"] then
                     local hitPos = targetPart.Position
