@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (EMOTE ENGINE PERFECT FIXED)
+-- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (UI LAYOUT & VISIBILITY FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -54,30 +54,10 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & EMOTE TAB ]
+-- [ 2. PLAYER MOVEMENT & EMOTE TAB ] - ⚠️ 잘림 방지를 위한 UI 레이아웃 재배치
 -- =============================================================================
-local PlayerBox = Tabs.Player:AddLeftGroupbox('Movement Modification')
-PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe (Above Head)', Default = false })
-PlayerBox:AddSlider('TeleportHeight', { Text = 'Teleport Height Offset', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
-PlayerBox:AddSlider('StrafeDuration', { Text = 'Teleport Cycle Interval', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
-PlayerBox:AddDropdown('MovementTargetMode', { Values = { 'Closest Player', 'Select Specific Player' }, Default = 1, Text = 'Target Tracking Priority' })
-PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = 'Select Target Player' })
-
-local OrbitGroupBox = Tabs.Player:AddLeftGroupbox('Orbit Aura Physics')
-OrbitGroupBox:AddToggle('OrbitToggle', { Text = 'Enable Orbit Aura', Default = false })
-OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { 'Map Center (0,0,0)', 'Tracked Target Position' }, Default = 2, Text = 'Rotation Center Anchor' })
-OrbitGroupBox:AddSlider('OrbitRadius', { Text = 'Orbit Radius Distance', Default = 8, Min = 2, Max = 100, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Rotation Speed', Default = 150, Min = 1, Max = 500, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset (Y-Axis)', Default = 3, Min = -50, Max = 50, Rounding = 0 })
-
-local UtilsGroupBox = Tabs.Player:AddRightGroupbox('Player Utilities')
-UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
-
-local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
-VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
-
--- 🕺 [EMOTE STUDIO 시스템 코어]
-local EmoteGroupBox = Tabs.Player:AddRightGroupbox('Hydra Emote Studio')
+-- 🕺 [EMOTE STUDIO 를 왼쪽 최상단으로 이동하여 무조건 보이게 조정]
+local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
 local selectedEmoteId = 0
 
@@ -165,6 +145,27 @@ EmoteGroupBox:AddButton('Stop Animation', function()
         currentEmoteTrack = nil
     end
 end)
+
+-- 다른 이동 관련 기능들을 우측 및 아래쪽으로 재정렬
+local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
+UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
+
+local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
+VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
+
+local PlayerBox = Tabs.Player:AddRightGroupbox('Movement Modification')
+PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe (Above Head)', Default = false })
+PlayerBox:AddSlider('TeleportHeight', { Text = 'Teleport Height Offset', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
+PlayerBox:AddSlider('StrafeDuration', { Text = 'Teleport Cycle Interval', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
+PlayerBox:AddDropdown('MovementTargetMode', { Values = { 'Closest Player', 'Select Specific Player' }, Default = 1, Text = 'Target Tracking Priority' })
+PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = 'Select Target Player' })
+
+local OrbitGroupBox = Tabs.Player:AddRightGroupbox('Orbit Aura Physics')
+OrbitGroupBox:AddToggle('OrbitToggle', { Text = 'Enable Orbit Aura', Default = false })
+OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { 'Map Center (0,0,0)', 'Tracked Target Position' }, Default = 2, Text = 'Rotation Center Anchor' })
+OrbitGroupBox:AddSlider('OrbitRadius', { Text = 'Orbit Radius Distance', Default = 8, Min = 2, Max = 100, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Rotation Speed', Default = 150, Min = 1, Max = 500, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset (Y-Axis)', Default = 3, Min = -50, Max = 50, Rounding = 0 })
 
 -- =============================================================================
 -- [ 3. VISUALS ESP TAB ]
@@ -664,7 +665,7 @@ local function updateMovement(dt)
             local flipY = (tick() * 30) % 2 == 0 and math.rad(85) or math.rad(-85)
             aaRotation = CFrame.Angles(flipY, antiAimAngle, 0)
         elseif mode == 'Fake Jitter' then
-            local jitter = (tick() * 40) % 2 == 0 and math.rad(180) or math.rad(0)
+            local jitter = (tick() * 40) % 2 == 0 Trade union membership and math.rad(180) or math.rad(0)
             aaRotation = CFrame.Angles(0, math.rad(180) + jitter, math.rad(25))
         end
         lastNormalCFrame = CFrame.new(lastNormalCFrame.Position) * lastNormalCFrame.Rotation * aaRotation
