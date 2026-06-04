@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - COMPREHENSIVE WEATHER ENGINE FIX
+-- ANLU Hub(Rivals) - COMPREHENSIVE FIX + EMOTE ENGINE ADDED
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -54,7 +54,7 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT TAB ]
+-- [ 2. PLAYER MOVEMENT & EMOTE TAB ]
 -- =============================================================================
 local PlayerBox = Tabs.Player:AddLeftGroupbox('Movement Modification')
 PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe (Above Head)', Default = false })
@@ -76,6 +76,98 @@ UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Defau
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
 
+-- ✨ [추가] EMOTE STUDIO 시스템
+local EmoteGroupBox = Tabs.Player:AddRightGroupbox('Hydra Emote Studio')
+local currentEmoteTrack = nil
+
+local function PlayCustomEmote(animationId)
+    local Players = game:GetService("Players")
+    local character = Players.LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        -- 기존에 재생 중인 핵 이모트가 있다면 정지
+        if currentEmoteTrack then
+            currentEmoteTrack:Stop()
+            currentEmoteTrack:Destroy()
+            currentEmoteTrack = nil
+        end
+        
+        -- 휴머노이드 애니메이터 서치 및 생성
+        local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+        
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://" .. tostring(animationId)
+        
+        local success, track = pcall(function()
+            return animator:LoadAnimation(anim)
+        end)
+        
+        if success and track then
+            currentEmoteTrack = track
+            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4 -- 최우선 순위 렌더링
+            currentEmoteTrack:Play()
+        end
+    end
+end
+
+-- 프리셋 목록 (로블록스 대표 이모트들 ID)
+local EmotePresets = {
+    ["Stop Emote"] = 0,
+    ["Default Dance"] = 507468474,
+    ["Floss"] = 10214312386,
+    ["Take The L"] = 10214314410,
+    ["Hype"] = 10214311896,
+    ["Orange Justice"] = 10214312845,
+    ["T-Pose"] = 10479375172,
+    ["Griddy"] = 11130453311,
+    ["Wave"] = 128743149,
+    ["Dance 1"] = 182435877,
+    ["Dance 2"] = 182436842,
+    ["Dance 3"] = 182436935
+}
+
+local EmoteNames = {}
+for name, _ in pairs(EmotePresets) do table.insert(EmoteNames, name) end
+table.sort(EmoteNames)
+
+EmoteGroupBox:AddDropdown('EmoteSelect', { 
+    Values = EmoteNames, 
+    Default = 1, 
+    Text = 'Select Preset Emote' 
+}):OnChanged(function()
+    local selected = Options.EmoteSelect.Value
+    local id = EmotePresets[selected]
+    if id and id > 0 then
+        PlayCustomEmote(id)
+    elseif id == 0 and currentEmoteTrack then
+        currentEmoteTrack:Stop()
+        currentEmoteTrack:Destroy()
+        currentEmoteTrack = nil
+    end
+end)
+
+EmoteGroupBox:AddInput('CustomEmoteId', {
+    Default = '',
+    Numeric = true,
+    Finished = true,
+    Text = 'Custom Animation ID',
+    Placeholder = 'Paste Asset ID here...',
+}):OnChanged(function()
+    local text = Options.CustomEmoteId.Value
+    if text and text ~= '' then
+        PlayCustomEmote(text)
+    end
+end)
+
+EmoteGroupBox:AddButton('Stop Animation', function()
+    if currentEmoteTrack then
+        currentEmoteTrack:Stop()
+        currentEmoteTrack:Destroy()
+        currentEmoteTrack = nil
+    end
+end)
+
 -- =============================================================================
 -- [ 3. VISUALS ESP TAB ]
 -- =============================================================================
@@ -88,17 +180,16 @@ EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = fals
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. WORLD EFFECTS TAB - PHYSICS FIXED ]
+-- [ 4. WORLD EFFECTS TAB ]
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
 
--- 가상 기후 파트 재생성 및 보안 우회 최적화
 local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
 if not weatherAnchor then
     weatherAnchor = Instance.new("Part")
     weatherAnchor.Name = "ANLU_WeatherZone"
-    weatherAnchor.Size = Vector3.new(100, 1, 100) -- 영역 확장
+    weatherAnchor.Size = Vector3.new(100, 1, 100)
     weatherAnchor.Transparency = 1
     weatherAnchor.Anchored = true
     weatherAnchor.CanCollide = false
@@ -121,7 +212,7 @@ WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default =
             snowPE.Rate = 200
             snowPE.Speed = NumberRange.new(20, 35)
             snowPE.SpreadAngle = Vector2.new(30, 30)
-            snowPE.LockedToPart = true -- [핵심] 플레이어 이동 시 입자가 유실되는 현상 방지
+            snowPE.LockedToPart = true
             snowPE.Acceleration = Vector3.new(0, -10, 0)
             snowPE.Parent = weatherAnchor
         end
@@ -139,10 +230,10 @@ WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default =
             rainPE.Texture = "rbxassetid://363276166" 
             rainPE.Size = NumberSequence.new(0.2)
             rainPE.Lifetime = NumberRange.new(1, 1.5)
-            rainPE.Rate = 500 -- 초당 드롭릿 생성량 업그레이드
+            rainPE.Rate = 500
             rainPE.Speed = NumberRange.new(90, 130)
-            rainPE.SpreadAngle = Vector2.new(10, 10) -- [오타수정] 기존 코드의 snowPE 오타 해결
-            rainPE.LockedToPart = true -- [핵심] 무조건 플레이어 머리 위로만 내리도록 고정
+            rainPE.SpreadAngle = Vector2.new(10, 10)
+            rainPE.LockedToPart = true
             rainPE.Acceleration = Vector3.new(-15, -50, 0)
             rainPE.Parent = weatherAnchor
         end
@@ -653,7 +744,6 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = false
     end
     
-    -- 플레이어 시야 정수리 상공 25 유닛에 정확하게 컨테이너 고정
     if weatherAnchor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myHrp = LocalPlayer.Character.HumanoidRootPart
         weatherAnchor.CFrame = CFrame.new(myHrp.Position + Vector3.new(0, 25, 0))
@@ -759,6 +849,7 @@ MenuGroup:AddButton('Unload Script', function()
     pcall(function()
         FOVCircle:Destroy() 
         if weatherAnchor then weatherAnchor:Destroy() end
+        if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() end
         for _, drawing in pairs(espCache) do
             drawing.Box:Destroy()
             drawing.Fill:Destroy()
