@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - ULTIMATE INTEGRATED EDITION (Fix Switch Bug)
+-- ANLU Hub(Rivals) - ULTIMATE INTEGRATED EDITION (Perfect Switch Fix)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -7,7 +7,7 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - FIXED EDITION',
+    Title = 'ANLU Hub(Rivals) - FIXED LOGIC',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -47,8 +47,8 @@ RageMainBox:AddToggle('VoidSpamToggle', { Text = '보이드 스팸 (초고속 �
 -- =============================================================================
 -- [ 2. PLAYER MOVEMENT TAB ]
 -- =============================================================================
-local PlayerBox = Tabs.Player:AddLeftGroupbox('이동 변조 (텔포/스트레이프)')
-PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 머리 위 텔포', Default = false })
+local PlayerBox = Tabs.Player:AddLeftGroupbox('이동 변조 (타겟 머리 위 텔포)')
+PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 머리 위 텔포 활성화', Default = false })
 PlayerBox:AddSlider('TeleportHeight', { Text = '텔레포트 높이', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
 PlayerBox:AddSlider('StrafeDuration', { Text = '텔포 작동 시간 주기', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
 PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = '타겟 플레이어 선택' })
@@ -387,7 +387,7 @@ local function updateAimbot(dt)
     end
 end
 
--- 🌟 [토글 스위치 꼬임 완벽 버그 수정 파트]
+-- 🌟 [정밀 변수 매칭 및 충돌 완전 해결 이동 연산]
 local function updateMovement(dt)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -396,15 +396,15 @@ local function updateMovement(dt)
     local targetPlayer = Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     
-    -- 정방향 매칭 스위치 변수 바인딩 확인
+    -- UI 고유 스위치 바인딩 확인
+    local strafe = Toggles.StrafeToggle.Value
     local orbit = Toggles.OrbitToggle.Value
     local void = Toggles.VoidSpamToggle.Value
-    local strafe = Toggles.StrafeToggle.Value
 
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
     local isStrafeActive = false
 
-    -- 1. 타겟 머리 위 텔포 (Strafe) 연산 파트
+    -- 1. 타겟 머리 위 텔포 (Strafe) 로직 분기 (우선순위 1)
     if strafe and targetHeadPos then
         local now = tick()
         local cycle = Options.StrafeDuration.Value
@@ -413,12 +413,15 @@ local function updateMovement(dt)
         elseif now - lastStrafeTime > (cycle * 2) then
             lastStrafeTime = now
         end
-    end
+        
+        if isStrafeActive then
+            local lookAtPos = Vector3.new(targetHrp.Position.X, targetHeadPos.Y, targetHrp.Position.Z)
+            lastNormalCFrame = CFrame.lookAt(targetHeadPos, lookAtPos)
+        else
+            lastNormalCFrame = hrp.CFrame
+        end
 
-    if isStrafeActive and targetHeadPos then
-        local lookAtPos = Vector3.new(targetHrp.Position.X, targetHeadPos.Y, targetHrp.Position.Z)
-        lastNormalCFrame = CFrame.lookAt(targetHeadPos, lookAtPos)
-    -- 2. 물리 오빗 아우라 (Orbit) 연산 파트
+    -- 2. 오빗 아우라 (Orbit) 로직 분기 (우선순위 2 - 스트레이프가 꺼져있을 때만 작동)
     elseif orbit then
         local center = (Options.OrbitTargetMode.Value == '맵 중심 (0,0,0)') and Vector3.new(0,0,0) or (targetHrp and targetHrp.Position or hrp.Position)
         angle = angle + (Options.OrbitSpeed.Value * dt)
@@ -431,14 +434,13 @@ local function updateMovement(dt)
         local y = center.Y + height
         
         lastNormalCFrame = CFrame.lookAt(Vector3.new(x, y, z), center)
-    elseif strafe and targetHeadPos and not isStrafeActive then
-        if not lastNormalCFrame then lastNormalCFrame = hrp.CFrame end
+        
     else
-        -- 아무것도 안 켜져 있으면 강제 좌표 고정을 풀기 위해 초기화
+        -- 아무 이동 기능도 활성화되어 있지 않으면 고정 해제
         lastNormalCFrame = nil
     end
 
-    -- CFrame 최종 대입 제어 영역
+    -- 최종 하드웨어 CFrame 밀어넣기 및 보이드 연산
     if lastNormalCFrame then
         if void then
             if alternateVoid then
@@ -473,7 +475,7 @@ mt.__namecall = newcclosure(function(self, ...)
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
                 local partName = Toggles.ClosestPart.Value and "Head" or "HumanoidRootPart"
-                local targetPart = targetPart or targetPlayer.Character:FindFirstChild(partName)
+                local targetPart = targetPlayer.Character:FindFirstChild(partName)
                 
                 if targetPart and args[3] and args[3]["\001"] then
                     local hitPos = targetPart.Position
