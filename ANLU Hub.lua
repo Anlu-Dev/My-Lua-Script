@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - COMPREHENSIVE FIX + EMOTE ENGINE ADDED
+-- ANLU Hub(Rivals) - COMPREHENSIVE FIX + EMOTE ENGINE ADDED (SYNTAX FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -76,7 +76,7 @@ UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Defau
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
 
--- ✨ [추가] EMOTE STUDIO 시스템
+-- 🕺 [EMOTE STUDIO 시스템 코어]
 local EmoteGroupBox = Tabs.Player:AddRightGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
 
@@ -86,16 +86,13 @@ local function PlayCustomEmote(animationId)
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     
     if humanoid then
-        -- 기존에 재생 중인 핵 이모트가 있다면 정지
         if currentEmoteTrack then
             currentEmoteTrack:Stop()
             currentEmoteTrack:Destroy()
             currentEmoteTrack = nil
         end
         
-        -- 휴머노이드 애니메이터 서치 및 생성
         local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
-        
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://" .. tostring(animationId)
         
@@ -105,13 +102,12 @@ local function PlayCustomEmote(animationId)
         
         if success and track then
             currentEmoteTrack = track
-            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4 -- 최우선 순위 렌더링
+            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4
             currentEmoteTrack:Play()
         end
     end
 end
 
--- 프리셋 목록 (로블록스 대표 이모트들 ID)
 local EmotePresets = {
     ["Stop Emote"] = 0,
     ["Default Dance"] = 507468474,
@@ -131,21 +127,22 @@ local EmoteNames = {}
 for name, _ in pairs(EmotePresets) do table.insert(EmoteNames, name) end
 table.sort(EmoteNames)
 
+-- UI 요소 선언 시점에 콜백 안전하게 바인딩
 EmoteGroupBox:AddDropdown('EmoteSelect', { 
     Values = EmoteNames, 
     Default = 1, 
-    Text = 'Select Preset Emote' 
-}):OnChanged(function()
-    local selected = Options.EmoteSelect.Value
-    local id = EmotePresets[selected]
-    if id and id > 0 then
-        PlayCustomEmote(id)
-    elseif id == 0 and currentEmoteTrack then
-        currentEmoteTrack:Stop()
-        currentEmoteTrack:Destroy()
-        currentEmoteTrack = nil
+    Text = 'Select Preset Emote',
+    Callback = function(Value)
+        local id = EmotePresets[Value]
+        if id and id > 0 then
+            PlayCustomEmote(id)
+        elseif id == 0 and currentEmoteTrack then
+            currentEmoteTrack:Stop()
+            currentEmoteTrack:Destroy()
+            currentEmoteTrack = nil
+        end
     end
-end)
+})
 
 EmoteGroupBox:AddInput('CustomEmoteId', {
     Default = '',
@@ -153,12 +150,12 @@ EmoteGroupBox:AddInput('CustomEmoteId', {
     Finished = true,
     Text = 'Custom Animation ID',
     Placeholder = 'Paste Asset ID here...',
-}):OnChanged(function()
-    local text = Options.CustomEmoteId.Value
-    if text and text ~= '' then
-        PlayCustomEmote(text)
+    Callback = function(Value)
+        if Value and Value ~= '' then
+            PlayCustomEmote(Value)
+        end
     end
-end)
+})
 
 EmoteGroupBox:AddButton('Stop Animation', function()
     if currentEmoteTrack then
