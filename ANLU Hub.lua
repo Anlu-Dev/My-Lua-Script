@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (CRITICAL TYPO FIXED)
+-- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (BUG FIX & SAFETY IMPLEMENTED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -370,7 +370,7 @@ local function createEspDrawings(player)
     drawings.TopLabel.TextSize = 14
     drawings.TopLabel.TextStrokeTransparency = 0
     drawings.TopLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    drawings.TopLabel.Parent = drawings.TopGui
+    drawings.TopLabel.Parent = drawings.TopLabel.Parent or drawings.TopGui
     drawings.TopGui.Parent = CoreGui
 
     return drawings
@@ -559,12 +559,14 @@ end
 Players.PlayerRemoving:Connect(function(player)
     if espCache[player] then
         pcall(function()
-            espCache[player].Box:Destroy()
-            espCache[player].Fill:Destroy()
-            espCache[player].HealthOutline:Destroy()
-            espCache[player].HealthBar:Destroy()
+            if espCache[player].Box then espCache[player].Box:Destroy() end
+            if espCache[player].Fill then espCache[player].Fill:Destroy() end
+            if espCache[player].HealthOutline then espCache[player].HealthOutline:Destroy() end
+            if espCache[player].HealthBar then espCache[player].HealthBar:Destroy() end
             if espCache[player].TopGui then espCache[player].TopGui:Destroy() end
-            for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
+            if espCache[player].Bones then
+                for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
+            end
         end)
         espCache[player] = nil
     end
@@ -703,7 +705,7 @@ mt.__namecall = newcclosure(function(self, ...)
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
                 local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
-                local targetPart = targetPart or targetPlayer.Character:FindFirstChild(partName)
+                local targetPart = targetPlayer.Character:FindFirstChild(partName)
                 
                 if targetPart and args[3] and args[3]["\001"] then
                     local hitPos = targetPart.Position
@@ -848,12 +850,14 @@ MenuGroup:AddButton('Unload Script', function()
         if weatherAnchor then weatherAnchor:Destroy() end
         if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() end
         for _, drawing in pairs(espCache) do
-            drawing.Box:Destroy()
-            drawing.Fill:Destroy()
-            drawing.HealthOutline:Destroy()
-            drawing.HealthBar:Destroy()
+            if drawing.Box then drawing.Box:Destroy() end
+            if drawing.Fill then drawing.Fill:Destroy() end
+            if drawing.HealthOutline then drawing.HealthOutline:Destroy() end
+            if drawing.HealthBar then drawing.HealthBar:Destroy() end
             if drawing.TopGui then drawing.TopGui:Destroy() end
-            for _, line in ipairs(drawing.Bones) do line:Destroy() end
+            if drawing.Bones then
+                for _, line in ipairs(drawing.Bones) do line:Destroy() end
+            end
         end
     end)
     Library:Unload() 
