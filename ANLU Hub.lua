@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (BUG FIX & SAFETY IMPLEMENTED)
+-- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (EMOTE ENGINE PERFECT FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -56,7 +56,28 @@ AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Defa
 -- =============================================================================
 -- [ 2. PLAYER MOVEMENT & EMOTE TAB ]
 -- =============================================================================
-local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Hydra Emote Studio')
+local PlayerBox = Tabs.Player:AddLeftGroupbox('Movement Modification')
+PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe (Above Head)', Default = false })
+PlayerBox:AddSlider('TeleportHeight', { Text = 'Teleport Height Offset', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
+PlayerBox:AddSlider('StrafeDuration', { Text = 'Teleport Cycle Interval', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
+PlayerBox:AddDropdown('MovementTargetMode', { Values = { 'Closest Player', 'Select Specific Player' }, Default = 1, Text = 'Target Tracking Priority' })
+PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = 'Select Target Player' })
+
+local OrbitGroupBox = Tabs.Player:AddLeftGroupbox('Orbit Aura Physics')
+OrbitGroupBox:AddToggle('OrbitToggle', { Text = 'Enable Orbit Aura', Default = false })
+OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { 'Map Center (0,0,0)', 'Tracked Target Position' }, Default = 2, Text = 'Rotation Center Anchor' })
+OrbitGroupBox:AddSlider('OrbitRadius', { Text = 'Orbit Radius Distance', Default = 8, Min = 2, Max = 100, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Rotation Speed', Default = 150, Min = 1, Max = 500, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset (Y-Axis)', Default = 3, Min = -50, Max = 50, Rounding = 0 })
+
+local UtilsGroupBox = Tabs.Player:AddRightGroupbox('Player Utilities')
+UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
+
+local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
+VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
+
+-- 🕺 [EMOTE STUDIO 시스템 코어]
+local EmoteGroupBox = Tabs.Player:AddRightGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
 local selectedEmoteId = 0
 
@@ -144,26 +165,6 @@ EmoteGroupBox:AddButton('Stop Animation', function()
         currentEmoteTrack = nil
     end
 end)
-
-local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
-UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
-
-local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
-VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
-
-local PlayerBox = Tabs.Player:AddRightGroupbox('Movement Modification')
-PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe (Above Head)', Default = false })
-PlayerBox:AddSlider('TeleportHeight', { Text = 'Teleport Height Offset', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
-PlayerBox:AddSlider('StrafeDuration', { Text = 'Teleport Cycle Interval', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
-PlayerBox:AddDropdown('MovementTargetMode', { Values = { 'Closest Player', 'Select Specific Player' }, Default = 1, Text = 'Target Tracking Priority' })
-PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = 'Select Target Player' })
-
-local OrbitGroupBox = Tabs.Player:AddRightGroupbox('Orbit Aura Physics')
-OrbitGroupBox:AddToggle('OrbitToggle', { Text = 'Enable Orbit Aura', Default = false })
-OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { 'Map Center (0,0,0)', 'Tracked Target Position' }, Default = 2, Text = 'Rotation Center Anchor' })
-OrbitGroupBox:AddSlider('OrbitRadius', { Text = 'Orbit Radius Distance', Default = 8, Min = 2, Max = 100, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Rotation Speed', Default = 150, Min = 1, Max = 500, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset (Y-Axis)', Default = 3, Min = -50, Max = 50, Rounding = 0 })
 
 -- =============================================================================
 -- [ 3. VISUALS ESP TAB ]
@@ -370,7 +371,7 @@ local function createEspDrawings(player)
     drawings.TopLabel.TextSize = 14
     drawings.TopLabel.TextStrokeTransparency = 0
     drawings.TopLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    drawings.TopLabel.Parent = drawings.TopLabel.Parent or drawings.TopGui
+    drawings.TopLabel.Parent = drawings.TopGui
     drawings.TopGui.Parent = CoreGui
 
     return drawings
@@ -559,14 +560,12 @@ end
 Players.PlayerRemoving:Connect(function(player)
     if espCache[player] then
         pcall(function()
-            if espCache[player].Box then espCache[player].Box:Destroy() end
-            if espCache[player].Fill then espCache[player].Fill:Destroy() end
-            if espCache[player].HealthOutline then espCache[player].HealthOutline:Destroy() end
-            if espCache[player].HealthBar then espCache[player].HealthBar:Destroy() end
+            espCache[player].Box:Destroy()
+            espCache[player].Fill:Destroy()
+            espCache[player].HealthOutline:Destroy()
+            espCache[player].HealthBar:Destroy()
             if espCache[player].TopGui then espCache[player].TopGui:Destroy() end
-            if espCache[player].Bones then
-                for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
-            end
+            for _, line in ipairs(espCache[player].Bones) do line:Destroy() end
         end)
         espCache[player] = nil
     end
@@ -850,14 +849,12 @@ MenuGroup:AddButton('Unload Script', function()
         if weatherAnchor then weatherAnchor:Destroy() end
         if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() end
         for _, drawing in pairs(espCache) do
-            if drawing.Box then drawing.Box:Destroy() end
-            if drawing.Fill then drawing.Fill:Destroy() end
-            if drawing.HealthOutline then drawing.HealthOutline:Destroy() end
-            if drawing.HealthBar then drawing.HealthBar:Destroy() end
+            drawing.Box:Destroy()
+            drawing.Fill:Destroy()
+            drawing.HealthOutline:Destroy()
+            drawing.HealthBar:Destroy()
             if drawing.TopGui then drawing.TopGui:Destroy() end
-            if drawing.Bones then
-                for _, line in ipairs(drawing.Bones) do line:Destroy() end
-            end
+            for _, line in ipairs(drawing.Bones) do line:Destroy() end
         end
     end)
     Library:Unload() 
