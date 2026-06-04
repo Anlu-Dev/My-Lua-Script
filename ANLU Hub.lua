@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - COMPREHENSIVE FIX + EMOTE ENGINE ADDED (SYNTAX FIXED)
+-- ANLU Hub(Rivals) - INTEGRATED FINAL VERSION (EMOTE ENGINE PERFECT FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -79,6 +79,7 @@ VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default 
 -- 🕺 [EMOTE STUDIO 시스템 코어]
 local EmoteGroupBox = Tabs.Player:AddRightGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
+local selectedEmoteId = 0
 
 local function PlayCustomEmote(animationId)
     local Players = game:GetService("Players")
@@ -91,6 +92,8 @@ local function PlayCustomEmote(animationId)
             currentEmoteTrack:Destroy()
             currentEmoteTrack = nil
         end
+        
+        if animationId == 0 then return end
         
         local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
         local anim = Instance.new("Animation")
@@ -127,20 +130,12 @@ local EmoteNames = {}
 for name, _ in pairs(EmotePresets) do table.insert(EmoteNames, name) end
 table.sort(EmoteNames)
 
--- UI 요소 선언 시점에 콜백 안전하게 바인딩
 EmoteGroupBox:AddDropdown('EmoteSelect', { 
     Values = EmoteNames, 
     Default = 1, 
     Text = 'Select Preset Emote',
     Callback = function(Value)
-        local id = EmotePresets[Value]
-        if id and id > 0 then
-            PlayCustomEmote(id)
-        elseif id == 0 and currentEmoteTrack then
-            currentEmoteTrack:Stop()
-            currentEmoteTrack:Destroy()
-            currentEmoteTrack = nil
-        end
+        selectedEmoteId = EmotePresets[Value] or 0
     end
 })
 
@@ -152,10 +147,16 @@ EmoteGroupBox:AddInput('CustomEmoteId', {
     Placeholder = 'Paste Asset ID here...',
     Callback = function(Value)
         if Value and Value ~= '' then
-            PlayCustomEmote(Value)
+            selectedEmoteId = tonumber(Value) or 0
         end
     end
 })
+
+EmoteGroupBox:AddButton('Play Animation', function()
+    if selectedEmoteId and selectedEmoteId ~= 0 then
+        PlayCustomEmote(selectedEmoteId)
+    end
+end)
 
 EmoteGroupBox:AddButton('Stop Animation', function()
     if currentEmoteTrack then
