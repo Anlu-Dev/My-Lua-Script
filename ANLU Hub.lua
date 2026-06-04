@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PERFECT PHYSICS & BALANCED ENGLISH EDITION
+-- ANLU Hub(Rivals) - PERFECT PHYSICS & WORLD EFFECT EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -14,10 +14,12 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.1
 })
 
+-- World 탭 신설 및 메뉴 구조화
 local Tabs = {
     Main = Window:AddTab('Main'),
     Player = Window:AddTab('Player'),
     Visuals = Window:AddTab('Visuals'),
+    World = Window:AddTab('World'),
     Misc = Window:AddTab('Misc'),
     ['UI Settings'] = Window:AddTab('UI Settings'),
 }
@@ -88,14 +90,102 @@ EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = fals
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. MISC TAB ]
+-- [ 4. ★ NEW WORLD EFFECTS TAB ★ ]
+-- =============================================================================
+local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
+local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
+
+-- 날씨 이펙트 오브젝트 보관용 변수
+local snowEmitter, rainEmitter = nil, nil
+
+WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default = false }):OnChanged(function()
+    local enabled = Toggles.SnowEffect.Value
+    local camera = workspace.CurrentCamera
+    
+    if enabled then
+        if not snowEmitter or not snowEmitter.Parent then
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(50, 1, 50)
+            part.Transparency = 1
+            part.Anchored = true
+            part.CanCollide = false
+            part.Name = "ANLU_SnowPart"
+            part.Parent = camera
+            
+            local pe = Instance.new("ParticleEmitter")
+            pe.Texture = "rbxassetid://12613146430" -- 눈송이 에셋 ID
+            pe.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0.2)})
+            pe.Lifetime = NumberRange.new(4, 7)
+ pe.Rate = 120
+            pe.Speed = NumberRange.new(5, 15)
+            pe.SpreadAngle = Vector2.new(10, 10)
+            pe.Acceleration = Vector3.new(0, -3, 0)
+            pe.Parent = part
+            
+            snowEmitter = part
+        end
+    else
+        if snowEmitter then
+            snowEmitter:Destroy()
+            snowEmitter = nil
+        end
+    end
+end)
+
+WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default = false }):OnChanged(function()
+    local enabled = Toggles.RainEffect.Value
+    local camera = workspace.CurrentCamera
+    
+    if enabled then
+        if not rainEmitter or not rainEmitter.Parent then
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(60, 1, 60)
+            part.Transparency = 1
+            part.Anchored = true
+            part.CanCollide = false
+            part.Name = "ANLU_RainPart"
+            part.Parent = camera
+            
+            local pe = Instance.new("ParticleEmitter")
+            pe.Texture = "rbxassetid://14704152501" -- 빗줄기 에셋 ID
+            pe.Size = NumberSequence.new(0.1, 0.1)
+            pe.Lifetime = NumberRange.new(1, 2)
+            pe.Rate = 300
+            pe.Speed = NumberRange.new(60, 90)
+ pe.Acceleration = Vector3.new(-5, -20, 0)
+            pe.Parent = part
+            
+            rainEmitter = part
+        end
+    else
+        if rainEmitter then
+            rainEmitter:Destroy()
+            rainEmitter = nil
+        end
+    end
+end)
+
+AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = 'Atmosphere Density', Default = 0, Min = 0, Max = 100, Rounding = 0 }):OnChanged(function()
+    local value = Options.AtmosphereDensity.Value / 100
+    local lighting = game:GetService("Lighting")
+    local atmos = lighting:FindFirstChildOfClass("Atmosphere")
+    
+    if not atmos then
+        atmos = Instance.new("Atmosphere")
+        atmos.Parent = lighting
+    end
+    atmos.Density = value
+end)
+
+-- =============================================================================
+-- [ 5. MISC TAB ]
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('Network Packet Overclock')
 WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', Default = false })
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
 -- =============================================================================
--- [ 5. BACKEND CORE ENGINE ]
+-- [ 6. BACKEND CORE ENGINE ]
 -- =============================================================================
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -422,21 +512,19 @@ local function updateAimbot(dt)
     end
 end
 
--- [★ 핵심 최적화 패치] 모든 무브먼트 관련 연산 필터링 기능 강화
 local function updateMovement(dt)
     if not Toggles or not Options then return end
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- 모든 무브먼트 관련 토글이 완전히 꺼져 있다면 로블록스 순정 물리 엔진에 1%도 간섭하지 않고 즉시 종료!
     local strafe = Toggles.StrafeToggle and Toggles.StrafeToggle.Value
     local orbit = Toggles.OrbitToggle and Toggles.OrbitToggle.Value
     local void = Toggles.VoidSpamToggle and Toggles.VoidSpamToggle.Value
     local antiaim = Toggles.AntiAimToggle and Toggles.AntiAimToggle.Value
 
     if not strafe and not orbit and not void and not antiaim then
-        return -- 가속도(Velocity)를 강제 0으로 덮어씌우는 물리 연산을 아예 스킵합니다!
+        return 
     end
 
     local targetPlayer = nil
@@ -520,14 +608,13 @@ local function updateMovement(dt)
             hrp.CFrame = lastNormalCFrame
         end
         
-        -- 무브먼트 핵 가동 중에만 속도를 강제 0으로 밀어버림
         hrp.Velocity = Vector3.new(0, 0, 0)
         hrp.RotVelocity = Vector3.new(0, 0, 0)
     end
 end
 
 -- =============================================================================
--- [ 6. METATABLE HOOK ]
+-- [ 7. METATABLE HOOK ]
 -- =============================================================================
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
@@ -578,6 +665,14 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = true
     else
         FOVCircle.Visible = false
+    end
+    
+    -- 카메라 기준 기후 파티클 실시간 위치 동기화 처리
+    if snowEmitter and snowEmitter.Parent then
+        snowEmitter.CFrame = Camera.CFrame * CFrame.new(0, 20, -10)
+    end
+    if rainEmitter and rainEmitter.Parent then
+        rainEmitter.CFrame = Camera.CFrame * CFrame.new(0, 25, -5)
     end
     
     pcall(updateEsp)
@@ -673,12 +768,14 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 -- =============================================================================
--- [ 7. UI SETTINGS ]
+-- [ 8. UI SETTINGS ]
 -- =============================================================================
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
         FOVCircle:Destroy() 
+        if snowEmitter then snowEmitter:Destroy() end
+        if rainEmitter then rainEmitter:Destroy() end
         for _, drawing in pairs(espCache) do
             drawing.Box:Destroy()
             drawing.Fill:Destroy()
