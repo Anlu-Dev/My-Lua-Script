@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - ULTIMATE INTEGRATED EDITION (Auto Closest Target Added)
+-- ANLU Hub(Rivals) - MAIN TAB ANTI-AIM INTEGRATED EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -7,7 +7,7 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - AUTO TARGET EDITION',
+    Title = 'ANLU Hub(Rivals) - MAIN ANTI-AIM EDITION',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -39,6 +39,12 @@ SilentTab:AddToggle('ShowFOV', { Text = 'FOV 범위 표시', Default = false })
 SilentTab:AddSlider('Radius', { Text = 'FOV 반지름 크기', Default = 400, Min = 0, Max = 1000, Rounding = 0 })
 SilentTab:AddSlider('HitChance', { Text = '명중 확률 (Hit Chance)', Default = 100, Min = 0, Max = 100, Rounding = 0 })
 
+-- ⭐ 안티 에임(Anti-Aim) 설정이 Main 탭 우측 레이아웃으로 이동되었습니다.
+local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('하이드라 안티 에임 (Anti-Aim)')
+AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = '안티 에임 활성화', Default = false })
+AntiAimGroupBox:AddDropdown('AntiAimMode', { Values = { '초고속 스핀 (Spinbot)', '백샷 (Backwards)', '지터 교란 (Jitter)' }, Default = 1, Text = '안티 에임 스타일' })
+AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = '스핀 회전 속도', Default = 100, Min = 10, Max = 300, Rounding = 0 })
+
 local RageMainBox = Tabs.Main:AddRightGroupbox('하이드라 레이지 봇 (Rage)')
 RageMainBox:AddToggle('RageBotToggle', { Text = '초고속 탄속 유도 활성화', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = '최저 탄속 보장 범위', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
@@ -51,8 +57,6 @@ local PlayerBox = Tabs.Player:AddLeftGroupbox('이동 변조 (타겟 머리 위 
 PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 머리 위 텔포 활성화', Default = false })
 PlayerBox:AddSlider('TeleportHeight', { Text = '텔레포트 높이', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
 PlayerBox:AddSlider('StrafeDuration', { Text = '텔포 작동 시간 주기', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
-
--- 대상 지정 방식 드롭다운 추가 (가장 가까운 대상 vs 특정 지정 플레이어)
 PlayerBox:AddDropdown('MovementTargetMode', { Values = { '가장 가까운 플레이어', '지정한 플레이어 선택' }, Default = 1, Text = '추적 대상 기준 설정' })
 PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = '지정할 플레이어 이름' })
 
@@ -97,7 +101,7 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local angle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, false, nil
+local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, false, nil
 local isClicking = false
 local isRightMouseDown = false
 local espCache = {}
@@ -113,7 +117,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 마우스 기준 가장 가까운 플레이어 추출 (에임봇/사일런트용)
 local function getClosestPlayerToMous()
     local target = nil
     local maxDist = Options.Radius.Value
@@ -136,7 +139,6 @@ local function getClosestPlayerToMous()
     return target
 end
 
--- 내 캐릭터 좌표 기준 가장 가까운 실제 플레이어 연산 (이동/텔포 변조용)
 local function getClosestPlayerToChar()
     local target = nil
     local maxDist = math.huge
@@ -412,13 +414,11 @@ local function updateAimbot(dt)
     end
 end
 
--- 🌟 [가장 가까운 적 실시간 자동 타겟 알고리즘 결합된 물리 연산 엔진]
 local function updateMovement(dt)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- 추적 방식 설정에 따라 타겟 플레이어를 동적으로 계산
     local targetPlayer = nil
     if Options.MovementTargetMode.Value == '가장 가까운 플레이어' then
         targetPlayer = getClosestPlayerToChar()
@@ -435,6 +435,7 @@ local function updateMovement(dt)
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
     local isStrafeActive = false
 
+    -- 이동 가공 파트
     if strafe and targetHeadPos then
         local now = tick()
         local cycle = Options.StrafeDuration.Value
@@ -465,9 +466,27 @@ local function updateMovement(dt)
         lastNormalCFrame = CFrame.lookAt(Vector3.new(x, y, z), center)
         
     else
-        lastNormalCFrame = nil
+        lastNormalCFrame = hrp.CFrame
     end
 
+    -- 안티 에임 가공 연산 파트
+    if Toggles.AntiAimToggle.Value and lastNormalCFrame then
+        antiAimAngle = antiAimAngle + (Options.AntiAimSpeed.Value * dt)
+        local mode = Options.AntiAimMode.Value
+        local aaRotation = CFrame.Identity
+
+        if mode == '초고속 스핀 (Spinbot)' then
+            aaRotation = CFrame.Angles(0, antiAimAngle, 0)
+        elseif mode == '백샷 (Backwards)' then
+            aaRotation = CFrame.Angles(0, math.rad(180), 0)
+        elseif mode == '지터 교란 (Jitter)' then
+            local jitter = (tick() * 50) % 2 == 0 and math.rad(45) or math.rad(-45)
+            aaRotation = CFrame.Angles(0, jitter, 0)
+        end
+        lastNormalCFrame = CFrame.new(lastNormalCFrame.Position) * lastNormalCFrame.Rotation * aaRotation
+    end
+
+    -- 물리 주입
     if lastNormalCFrame then
         if void then
             if alternateVoid then
