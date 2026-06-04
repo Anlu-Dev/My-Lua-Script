@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - FIXED & BALANCED ENGLISH EDITION
+-- ANLU Hub(Rivals) - GLITCH ANTI-AIM & PERFECT BALANCE ENGLISH EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -7,7 +7,7 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - MULTI EDITION',
+    Title = 'ANLU Hub(Rivals) - GLITCH EDITION',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -23,10 +23,10 @@ local Tabs = {
 }
 
 -- =============================================================================
--- [ 1. MAIN COMBAT TAB - PERFECT BALANCE ]
+-- [ 1. MAIN COMBAT TAB - BALANCED & UPGRADED ]
 -- =============================================================================
 
--- Left Column: Aimbot & Rage Bot (이동 배치로 좌우 균형 맞춤)
+-- Left Column: Aimbot & Rage Bot (완벽한 좌측 정렬 배치)
 local AimbotTab = Tabs.Main:AddLeftGroupbox('Camera Lock-on Aimbot')
 AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = false })
 AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
@@ -37,7 +37,7 @@ RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', De
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 RageMainBox:AddToggle('VoidSpamToggle', { Text = 'Void Spam (Anti-Hitbox)', Default = false })
 
--- Right Column: Silent Aim & Anti-Aim
+-- Right Column: Silent Aim & Anti-Aim (기괴한 모드 포함)
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
 SilentTab:AddToggle('WallBang', { Text = 'Wall Bang (Penetration)', Default = true })
@@ -49,8 +49,13 @@ SilentTab:AddSlider('HitChance', { Text = 'Hit Chance (%)', Default = 100, Min =
 
 local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('Hydra Anti-Aim')
 AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = 'Enable Anti-Aim', Default = false })
-AntiAimGroupBox:AddDropdown('AntiAimMode', { Values = { 'Hyper Spinbot', 'Backwards', 'Jitter Distort' }, Default = 1, Text = 'Anti-Aim Style' })
-AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Spinbot Rotation Speed', Default = 100, Min = 10, Max = 300, Rounding = 0 })
+-- 새로 설계한 기괴한 스타일 3종 목록 추가 완료!
+AntiAimGroupBox:AddDropdown('AntiAimMode', { 
+    Values = { 'Hyper Spinbot', 'Backwards', 'Matrix Break', 'Pitch Flip', 'Fake Jitter' }, 
+    Default = 1, 
+    Text = 'Anti-Aim Style' 
+})
+AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
 -- [ 2. PLAYER MOVEMENT TAB ]
@@ -103,7 +108,6 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- 전역 테이블 변수 안전하게 초기화 확인
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking = false
 local isRightMouseDown = false
@@ -477,6 +481,7 @@ local function updateMovement(dt)
         lastNormalCFrame = hrp.CFrame
     end
 
+    -- [핵심 업데이트] 기괴한 안티에임 물리 연산식 적용
     if Toggles.AntiAimToggle and Toggles.AntiAimToggle.Value and lastNormalCFrame then
         antiAimAngle = antiAimAngle + (Options.AntiAimSpeed.Value * dt)
         local mode = Options.AntiAimMode.Value
@@ -486,9 +491,20 @@ local function updateMovement(dt)
             aaRotation = CFrame.Angles(0, antiAimAngle, 0)
         elseif mode == 'Backwards' then
             aaRotation = CFrame.Angles(0, math.rad(180), 0)
-        elseif mode == 'Jitter Distort' then
-            local jitter = (tick() * 50) % 2 == 0 and math.rad(45) or math.rad(-45)
-            aaRotation = CFrame.Angles(0, jitter, 0)
+        elseif mode == 'Matrix Break' then
+            -- 매 프레임 사지를 뒤틀어 렉 걸린 것처럼 만듦
+            local randomX = math.rad(math.random(-60, 60))
+            local randomY = math.rad(math.random(-180, 180))
+            local randomZ = math.rad(math.random(-45, 45))
+            aaRotation = CFrame.Angles(randomX, randomY, randomZ)
+        elseif mode == 'Pitch Flip' then
+            -- 스핀을 주며 초고속으로 상하 90도 교차 꺾기
+            local flipY = (tick() * 30) % 2 == 0 and math.rad(85) or math.rad(-85)
+            aaRotation = CFrame.Angles(flipY, antiAimAngle, 0)
+        elseif mode == 'Fake Jitter' then
+            -- 0.025초 단위로 훼이크 반대각을 뿌려 잔상 유도
+            local jitter = (tick() * 40) % 2 == 0 and math.rad(180) or math.rad(0)
+            aaRotation = CFrame.Angles(0, math.rad(180) + jitter, math.rad(25))
         end
         lastNormalCFrame = CFrame.new(lastNormalCFrame.Position) * lastNormalCFrame.Rotation * aaRotation
     end
