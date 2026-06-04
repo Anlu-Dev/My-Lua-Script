@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - GLITCH ANTI-AIM & PERFECT BALANCE ENGLISH EDITION
+-- ANLU Hub(Rivals) - PERFECT PHYSICS & BALANCED ENGLISH EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -7,7 +7,7 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - GLITCH EDITION',
+    Title = 'ANLU Hub(Rivals) - MULTI MULTI',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -23,10 +23,8 @@ local Tabs = {
 }
 
 -- =============================================================================
--- [ 1. MAIN COMBAT TAB - BALANCED & UPGRADED ]
+-- [ 1. MAIN COMBAT TAB ]
 -- =============================================================================
-
--- Left Column: Aimbot & Rage Bot (완벽한 좌측 정렬 배치)
 local AimbotTab = Tabs.Main:AddLeftGroupbox('Camera Lock-on Aimbot')
 AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = false })
 AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
@@ -37,7 +35,6 @@ RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', De
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 RageMainBox:AddToggle('VoidSpamToggle', { Text = 'Void Spam (Anti-Hitbox)', Default = false })
 
--- Right Column: Silent Aim & Anti-Aim (기괴한 모드 포함)
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
 SilentTab:AddToggle('WallBang', { Text = 'Wall Bang (Penetration)', Default = true })
@@ -49,7 +46,6 @@ SilentTab:AddSlider('HitChance', { Text = 'Hit Chance (%)', Default = 100, Min =
 
 local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('Hydra Anti-Aim')
 AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = 'Enable Anti-Aim', Default = false })
--- 새로 설계한 기괴한 스타일 3종 목록 추가 완료!
 AntiAimGroupBox:AddDropdown('AntiAimMode', { 
     Values = { 'Hyper Spinbot', 'Backwards', 'Matrix Break', 'Pitch Flip', 'Fake Jitter' }, 
     Default = 1, 
@@ -426,11 +422,22 @@ local function updateAimbot(dt)
     end
 end
 
+-- [★ 핵심 최적화 패치] 모든 무브먼트 관련 연산 필터링 기능 강화
 local function updateMovement(dt)
     if not Toggles or not Options then return end
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+
+    -- 모든 무브먼트 관련 토글이 완전히 꺼져 있다면 로블록스 순정 물리 엔진에 1%도 간섭하지 않고 즉시 종료!
+    local strafe = Toggles.StrafeToggle and Toggles.StrafeToggle.Value
+    local orbit = Toggles.OrbitToggle and Toggles.OrbitToggle.Value
+    local void = Toggles.VoidSpamToggle and Toggles.VoidSpamToggle.Value
+    local antiaim = Toggles.AntiAimToggle and Toggles.AntiAimToggle.Value
+
+    if not strafe and not orbit and not void and not antiaim then
+        return -- 가속도(Velocity)를 강제 0으로 덮어씌우는 물리 연산을 아예 스킵합니다!
+    end
 
     local targetPlayer = nil
     if Options.MovementTargetMode.Value == 'Closest Player' then
@@ -440,11 +447,6 @@ local function updateMovement(dt)
     end
 
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    
-    local strafe = Toggles.StrafeToggle and Toggles.StrafeToggle.Value
-    local orbit = Toggles.OrbitToggle and Toggles.OrbitToggle.Value
-    local void = Toggles.VoidSpamToggle and Toggles.VoidSpamToggle.Value
-
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
     local isStrafeActive = false
 
@@ -481,8 +483,7 @@ local function updateMovement(dt)
         lastNormalCFrame = hrp.CFrame
     end
 
-    -- [핵심 업데이트] 기괴한 안티에임 물리 연산식 적용
-    if Toggles.AntiAimToggle and Toggles.AntiAimToggle.Value and lastNormalCFrame then
+    if antiaim and lastNormalCFrame then
         antiAimAngle = antiAimAngle + (Options.AntiAimSpeed.Value * dt)
         local mode = Options.AntiAimMode.Value
         local aaRotation = CFrame.Identity
@@ -492,17 +493,14 @@ local function updateMovement(dt)
         elseif mode == 'Backwards' then
             aaRotation = CFrame.Angles(0, math.rad(180), 0)
         elseif mode == 'Matrix Break' then
-            -- 매 프레임 사지를 뒤틀어 렉 걸린 것처럼 만듦
             local randomX = math.rad(math.random(-60, 60))
             local randomY = math.rad(math.random(-180, 180))
             local randomZ = math.rad(math.random(-45, 45))
             aaRotation = CFrame.Angles(randomX, randomY, randomZ)
         elseif mode == 'Pitch Flip' then
-            -- 스핀을 주며 초고속으로 상하 90도 교차 꺾기
             local flipY = (tick() * 30) % 2 == 0 and math.rad(85) or math.rad(-85)
             aaRotation = CFrame.Angles(flipY, antiAimAngle, 0)
         elseif mode == 'Fake Jitter' then
-            -- 0.025초 단위로 훼이크 반대각을 뿌려 잔상 유도
             local jitter = (tick() * 40) % 2 == 0 and math.rad(180) or math.rad(0)
             aaRotation = CFrame.Angles(0, math.rad(180) + jitter, math.rad(25))
         end
@@ -522,6 +520,7 @@ local function updateMovement(dt)
             hrp.CFrame = lastNormalCFrame
         end
         
+        -- 무브먼트 핵 가동 중에만 속도를 강제 0으로 밀어버림
         hrp.Velocity = Vector3.new(0, 0, 0)
         hrp.RotVelocity = Vector3.new(0, 0, 0)
     end
