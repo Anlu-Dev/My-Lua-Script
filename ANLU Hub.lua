@@ -1,10 +1,13 @@
+-- =============================================================================
+-- ANLU Hub(Rivals) - ULTIMATE INTEGRATED EDITION (Fix Switch Bug)
+-- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - AIMBOT & VISUALS',
+    Title = 'ANLU Hub(Rivals) - FIXED EDITION',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -20,12 +23,11 @@ local Tabs = {
 }
 
 -- =============================================================================
--- [ 1. MAIN TAB : 사일런트 에임 및 카메라 에임봇 ]
+-- [ 1. MAIN COMBAT TAB ]
 -- =============================================================================
 local AimbotTab = Tabs.Main:AddLeftGroupbox('카메라 락온 에임봇')
--- 🌟 새로운 부드러운 에임봇 옵션 배치
 AimbotTab:AddToggle('AimbotEnabled', { Text = '카메라 에임봇 활성화', Default = false })
-AimbotTab:AddSlider('Smoothness', { Text = '에임 부드러움 (Smoothing)', Default = 5, Min = 1, Max = 20, Rounding = 1 })
+AimbotTab:AddSlider('Smoothness', { Text = '에임 부드러움 (Smoothing)', Default = 8, Min = 1, Max = 20, Rounding = 1 })
 AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = '조준 부위 설정' })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('하이퍼 사일런트 에임')
@@ -38,12 +40,12 @@ SilentTab:AddSlider('Radius', { Text = 'FOV 반지름 크기', Default = 400, Mi
 SilentTab:AddSlider('HitChance', { Text = '명중 확률 (Hit Chance)', Default = 100, Min = 0, Max = 100, Rounding = 0 })
 
 local RageMainBox = Tabs.Main:AddRightGroupbox('하이드라 레이지 봇 (Rage)')
-RageMainBox:AddToggle('RageBotToggle', { Text = '초고속 탄속 유도 활성화', Default = true })
+RageMainBox:AddToggle('RageBotToggle', { Text = '초고속 탄속 유도 활성화', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = '최저 탄속 보장 범위', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 RageMainBox:AddToggle('VoidSpamToggle', { Text = '보이드 스팸 (초고속 탈착)', Default = false })
 
 -- =============================================================================
--- [ 2. PLAYER TAB ]
+-- [ 2. PLAYER MOVEMENT TAB ]
 -- =============================================================================
 local PlayerBox = Tabs.Player:AddLeftGroupbox('이동 변조 (텔포/스트레이프)')
 PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 머리 위 텔포', Default = false })
@@ -54,18 +56,18 @@ PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = '타
 local OrbitGroupBox = Tabs.Player:AddLeftGroupbox('진짜 물리 오빗 설정 (Orbit Aura)')
 OrbitGroupBox:AddToggle('OrbitToggle', { Text = '오빗 아우라 활성화', Default = false })
 OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { '맵 중심 (0,0,0)', '지정한 플레이어' }, Default = 2, Text = '회전 중심 기준' })
-OrbitGroupBox:AddSlider('OrbitRadius', { Text = '회전 거리 (반지름)', Default = 8, Min = 2, Max = 100000, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitSpeed', { Text = '회전 속도', Default = 150, Min = 1, Max = 5000, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitHeight', { Text = '높이 오프셋 (Y축)', Default = 3, Min = -50, Max = 100000, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitRadius', { Text = '회전 거리 (반지름)', Default = 8, Min = 2, Max = 100, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitSpeed', { Text = '회전 속도', Default = 150, Min = 1, Max = 500, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitHeight', { Text = '높이 오프셋 (Y축)', Default = 3, Min = -50, Max = 50, Rounding = 0 })
 
 local UtilsGroupBox = Tabs.Player:AddRightGroupbox('플레이어 편의 기능 (Utils)')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = '무한 점프 활성화', Default = false })
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('보이드 상세 설정')
-VoidGroupBox:AddSlider('VoidSpamDepth', { Text = '보이드 깊이 (Y축)', Default = -100000, Min = -200000, Max = -10000, Rounding = 0 })
+VoidGroupBox:AddSlider('VoidSpamDepth', { Text = '보이드 깊이 (Y축)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
 
 -- =============================================================================
--- [ 3. VISUALS TAB : 깔끔하고 완벽히 작동하는 정예 비주얼 ]
+-- [ 3. VISUALS ESP TAB ]
 -- =============================================================================
 local EspGroupBox = Tabs.Visuals:AddLeftGroupbox('player options')
 EspGroupBox:AddToggle('EspBox', { Text = 'box', Default = false }):AddColorPicker('BoxColor', { Default = Color3.fromRGB(255, 255, 255) })
@@ -79,7 +81,7 @@ EspGroupBox:AddToggle('EspHealthBar', { Text = 'healthbar', Default = false }):A
 -- [ 4. MISC TAB ]
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('네트워크 패킷 하이퍼 연사')
-WeaponModBox:AddToggle('FastFireToggle', { Text = '패킷 오버클럭 연사 활성화', Default = true })
+WeaponModBox:AddToggle('FastFireToggle', { Text = '패킷 오버클럭 연사 활성화', Default = false })
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = '패킷 동시 복제 배율', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
 -- =============================================================================
@@ -94,7 +96,7 @@ local Camera = workspace.CurrentCamera
 
 local angle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, false, nil
 local isClicking = false
-local isRightMouseDown = false -- 우클릭 감지 플래그
+local isRightMouseDown = false
 local espCache = {}
 
 local FOVCircle = Drawing.new("Circle")
@@ -370,24 +372,22 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
--- 🌟 [에임봇 카메라 제어 루프 연산]
-local function updateAimbot()
+local function updateAimbot(dt)
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
         local targetPlayer = getClosestPlayerToMous()
         if targetPlayer and targetPlayer.Character then
             local targetPart = targetPlayer.Character:FindFirstChild(Options.AimbotPart.Value)
             if targetPart then
-                -- 카메라 가속도 스무스 Lerp 계수 필터링
-                local smoothing = Options.Smoothness.Value
-                local factor = 1 / smoothing
-                
                 local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
-                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, factor)
+                local smoothing = Options.Smoothness.Value
+                local alpha = math.clamp(dt * (21 - smoothing), 0, 1)
+                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, alpha)
             end
         end
     end
 end
 
+-- 🌟 [토글 스위치 꼬임 완벽 버그 수정 파트]
 local function updateMovement(dt)
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -396,6 +396,7 @@ local function updateMovement(dt)
     local targetPlayer = Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     
+    -- 정방향 매칭 스위치 변수 바인딩 확인
     local orbit = Toggles.OrbitToggle.Value
     local void = Toggles.VoidSpamToggle.Value
     local strafe = Toggles.StrafeToggle.Value
@@ -403,6 +404,7 @@ local function updateMovement(dt)
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
     local isStrafeActive = false
 
+    -- 1. 타겟 머리 위 텔포 (Strafe) 연산 파트
     if strafe and targetHeadPos then
         local now = tick()
         local cycle = Options.StrafeDuration.Value
@@ -416,6 +418,7 @@ local function updateMovement(dt)
     if isStrafeActive and targetHeadPos then
         local lookAtPos = Vector3.new(targetHrp.Position.X, targetHeadPos.Y, targetHrp.Position.Z)
         lastNormalCFrame = CFrame.lookAt(targetHeadPos, lookAtPos)
+    -- 2. 물리 오빗 아우라 (Orbit) 연산 파트
     elseif orbit then
         local center = (Options.OrbitTargetMode.Value == '맵 중심 (0,0,0)') and Vector3.new(0,0,0) or (targetHrp and targetHrp.Position or hrp.Position)
         angle = angle + (Options.OrbitSpeed.Value * dt)
@@ -430,8 +433,12 @@ local function updateMovement(dt)
         lastNormalCFrame = CFrame.lookAt(Vector3.new(x, y, z), center)
     elseif strafe and targetHeadPos and not isStrafeActive then
         if not lastNormalCFrame then lastNormalCFrame = hrp.CFrame end
+    else
+        -- 아무것도 안 켜져 있으면 강제 좌표 고정을 풀기 위해 초기화
+        lastNormalCFrame = nil
     end
 
+    -- CFrame 최종 대입 제어 영역
     if lastNormalCFrame then
         if void then
             if alternateVoid then
@@ -447,8 +454,6 @@ local function updateMovement(dt)
         
         hrp.Velocity = Vector3.new(0, 0, 0)
         hrp.RotVelocity = Vector3.new(0, 0, 0)
-    else
-        lastNormalCFrame = nil
     end
 end
 
@@ -468,13 +473,13 @@ mt.__namecall = newcclosure(function(self, ...)
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
                 local partName = Toggles.ClosestPart.Value and "Head" or "HumanoidRootPart"
-                local targetPart = targetPlayer.Character:FindFirstChild(partName)
+                local targetPart = targetPart or targetPlayer.Character:FindFirstChild(partName)
                 
                 if targetPart and args[3] and args[3]["\001"] then
                     local hitPos = targetPart.Position
                     
-                    if Toggles.PredictiveShot.Value and targetPart.Parent:FindFirstChild("HumanoidRootPart") then
-                        local velocity = targetPart.Parent.HumanoidRootPart.Velocity
+                    if Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local velocity = targetPlayer.Character.HumanoidRootPart.Velocity
                         hitPos = hitPos + (velocity * 0.135) 
                     end
                     
@@ -497,7 +502,7 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
     if Toggles.ShowFOV.Value then
         FOVCircle.Position = UserInputService:GetMouseLocation()
         FOVCircle.Radius = Options.Radius.Value
@@ -507,7 +512,7 @@ RunService.RenderStepped:Connect(function()
     end
     
     updateEsp()
-    updateAimbot() -- 매 프레임 에임 이동 연산 실행
+    updateAimbot(dt)
 end)
 
 workspace.DescendantAdded:Connect(function(d) 
@@ -547,17 +552,15 @@ workspace.DescendantAdded:Connect(function(d)
     end 
 end)
 
--- 마우스 클릭 및 우클릭 입력 감지 구문
 UserInputService.InputBegan:Connect(function(i, g) 
-    if not g then
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end
-        if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end -- 우클릭 홀드 시작
+    if not g then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end 
+        if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end
     end 
 end)
-
 UserInputService.InputEnded:Connect(function(i) 
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end
-    if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end -- 우클릭 해제
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end 
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end
 end)
 
 local UseItemRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Replication"):WaitForChild("Fighter"):WaitForChild("UseItem")
