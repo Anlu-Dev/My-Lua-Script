@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PERFECT PHYSICS & WORLD EFFECT EDITION
+-- ANLU Hub(Rivals) - FIXED TAB HIERARCHY & WORLD EFFECT EDITION
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -14,15 +14,14 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.1
 })
 
--- World 탭 신설 및 메뉴 구조화
-local Tabs = {
-    Main = Window:AddTab('Main'),
-    Player = Window:AddTab('Player'),
-    Visuals = Window:AddTab('Visuals'),
-    World = Window:AddTab('World'),
-    Misc = Window:AddTab('Misc'),
-    ['UI Settings'] = Window:AddTab('UI Settings'),
-}
+-- [★ 중요] LinoriaLib 탭 생성 오류 방지를 위해 명시적 순차 생성으로 변경
+local Tabs = {}
+Tabs.Main = Window:AddTab('Main')
+Tabs.Player = Window:AddTab('Player')
+Tabs.Visuals = Window:AddTab('Visuals')
+Tabs.World = Window:AddTab('World')  -- 이제 UI 상서 정상적으로 로드됩니다!
+Tabs.Misc = Window:AddTab('Misc')
+Tabs['UI Settings'] = Window:AddTab('UI Settings')
 
 -- =============================================================================
 -- [ 1. MAIN COMBAT TAB ]
@@ -90,12 +89,11 @@ EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = fals
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. ★ NEW WORLD EFFECTS TAB ★ ]
+-- [ 4. WORLD EFFECTS TAB ]
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
 
--- 날씨 이펙트 오브젝트 보관용 변수
 local snowEmitter, rainEmitter = nil, nil
 
 WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default = false }):OnChanged(function()
@@ -113,10 +111,10 @@ WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default =
             part.Parent = camera
             
             local pe = Instance.new("ParticleEmitter")
-            pe.Texture = "rbxassetid://12613146430" -- 눈송이 에셋 ID
+            pe.Texture = "rbxassetid://12613146430"
             pe.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0.2)})
             pe.Lifetime = NumberRange.new(4, 7)
- pe.Rate = 120
+            pe.Rate = 120
             pe.Speed = NumberRange.new(5, 15)
             pe.SpreadAngle = Vector2.new(10, 10)
             pe.Acceleration = Vector3.new(0, -3, 0)
@@ -147,12 +145,12 @@ WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default =
             part.Parent = camera
             
             local pe = Instance.new("ParticleEmitter")
-            pe.Texture = "rbxassetid://14704152501" -- 빗줄기 에셋 ID
+            pe.Texture = "rbxassetid://14704152501"
             pe.Size = NumberSequence.new(0.1, 0.1)
             pe.Lifetime = NumberRange.new(1, 2)
             pe.Rate = 300
             pe.Speed = NumberRange.new(60, 90)
- pe.Acceleration = Vector3.new(-5, -20, 0)
+            pe.Acceleration = Vector3.new(-5, -20, 0)
             pe.Parent = part
             
             rainEmitter = part
@@ -667,7 +665,6 @@ RunService.RenderStepped:Connect(function(dt)
         FOVCircle.Visible = false
     end
     
-    -- 카메라 기준 기후 파티클 실시간 위치 동기화 처리
     if snowEmitter and snowEmitter.Parent then
         snowEmitter.CFrame = Camera.CFrame * CFrame.new(0, 20, -10)
     end
