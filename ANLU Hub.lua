@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (KOREAN TRANSLATION & STATIC GLITCH)
+-- ANLU Hub(Rivals) - PRO EDITION (WEAPON DUPLICATOR & KOR TRANSLATION)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -130,11 +130,32 @@ local VisualsMainBox = Tabs.Visuals:AddLeftGroupbox('핵심 시각 효과')
 VisualsMainBox:AddToggle('EspEnabled', { Text = '플레이어 위치 표시 (ESP)', Default = false })
 
 -- =============================================================================
--- [ 4. MISC TAB ]
+-- [ 4. MISC TAB ] (여기 무기 복사 기능 추가!)
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('무기 설정 (오버클럭)')
 WeaponModBox:AddToggle('FastFireToggle', { Text = '초고속 연사 켜기', Default = false })
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = '연사 배속 조절', Default = 4, Min = 1, Max = 10, Rounding = 0 })
+
+local InventoryBox = Tabs.Misc:AddLeftGroupbox('인벤토리 조작')
+InventoryBox:AddButton('현재 든 무기 4개로 복사하기', function()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    
+    if char and backpack then
+        local currentTool = char:FindFirstChildOfClass("Tool")
+        if currentTool then
+            for i = 1, 3 do
+                local clonedTool = currentTool:Clone()
+                clonedTool.Parent = backpack
+            end
+            Library:Notify('🔥 들고 있는 무기를 4개로 복사했습니다!', 3)
+        else
+            Library:Notify('❌ 복사할 무기를 먼저 손에 들어주세요!', 3)
+        end
+    else
+        Library:Notify('❌ 인벤토리를 찾을 수 없습니다.', 3)
+    end
+end)
 
 -- =============================================================================
 -- [ 5. BACKEND CORE ENGINE ]
