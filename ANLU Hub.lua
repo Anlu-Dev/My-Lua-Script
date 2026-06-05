@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (FULL BODY SPIN EMOTE BYPASS)
+-- ANLU Hub(Rivals) - PRO EDITION (FLY SYSTEM & CFRAME EMOTE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -65,34 +65,22 @@ local LocalPlayer = Players.LocalPlayer
 local cframeDanceConnection = nil
 local lastDancePos = nil
 
--- 팔다리 꺾는 대신 몸통을 5칸 위로 띄우고 미친듯이 돌리는 절대 회피 댄스
 local function ToggleCFrameDance(state)
     if cframeDanceConnection then
         cframeDanceConnection:Disconnect()
         cframeDanceConnection = nil
     end
-
     if state then
         local char = LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            -- 춤추기 시작할 때의 위치를 기억 (공중으로 5칸 상승)
-            lastDancePos = hrp.Position + Vector3.new(0, 5, 0) 
-        end
+        if hrp then lastDancePos = hrp.Position + Vector3.new(0, 5, 0) end
 
         cframeDanceConnection = RunService.RenderStepped:Connect(function()
             local currentChar = LocalPlayer.Character
             local currentHrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
-            
             if currentHrp and lastDancePos then
                 local t = tick()
-                -- 캐릭터 전체를 강제 회전 & 꿀렁거리게 덮어쓰기
-                currentHrp.CFrame = CFrame.new(
-                    lastDancePos.X, 
-                    lastDancePos.Y + (math.sin(t * 4) * 2), 
-                    lastDancePos.Z
-                ) * CFrame.Angles(0, t * 15, 0)
-                
+                currentHrp.CFrame = CFrame.new(lastDancePos.X, lastDancePos.Y + (math.sin(t * 4) * 2), lastDancePos.Z) * CFrame.Angles(0, t * 15, 0)
                 currentHrp.Velocity = Vector3.new(0, 0, 0)
             end
         end)
@@ -108,6 +96,9 @@ end)
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
+-- [추가됨] FLY 기능
+UtilsGroupBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Flight)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly' })
+UtilsGroupBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 300, Rounding = 0 })
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
@@ -358,11 +349,64 @@ local function updateEsp()
     end
 end
 
+-- =============================================================================
+-- [ FLY SYSTEM & KEY INPUTS ]
+-- =============================================================================
+local FlyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftControl = false}
+
+local function updateFly()
+    if not Toggles or not Options then return end
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if Toggles.FlyToggle and Toggles.FlyToggle.Value and hrp then
+        local camCFrame = Camera.CFrame
+        local moveDir = Vector3.new(0, 0, 0)
+
+        if FlyKeys.W then moveDir = moveDir + camCFrame.LookVector end
+        if FlyKeys.S then moveDir = moveDir - camCFrame.LookVector end
+        if FlyKeys.A then moveDir = moveDir - camCFrame.RightVector end
+        if FlyKeys.D then moveDir = moveDir + camCFrame.RightVector end
+        if FlyKeys.Space then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if FlyKeys.LeftControl then moveDir = moveDir - Vector3.new(0, 1, 0) end
+
+        if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
+
+        local bv = hrp:FindFirstChild("ANLU_Fly")
+        if not bv then
+            bv = Instance.new("BodyVelocity")
+            bv.Name = "ANLU_Fly"
+            bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bv.Parent = hrp
+        end
+        bv.Velocity = moveDir * Options.FlySpeed.Value
+
+        -- 방향 틀기 (안티에임/댄스와 안 겹치게)
+        if not Toggles.AntiAimToggle.Value and not Toggles.CFrameDanceToggle.Value then
+            local bg = hrp:FindFirstChild("ANLU_FlyGyro")
+            if not bg then
+                bg = Instance.new("BodyGyro")
+                bg.Name = "ANLU_FlyGyro"
+                bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+                bg.P = 10000
+                bg.Parent = hrp
+            end
+            bg.CFrame = CFrame.new(hrp.Position, hrp.Position + camCFrame.LookVector * 100)
+        else
+            if hrp:FindFirstChild("ANLU_FlyGyro") then hrp.ANLU_FlyGyro:Destroy() end
+        end
+    else
+        if hrp then
+            if hrp:FindFirstChild("ANLU_Fly") then hrp.ANLU_Fly:Destroy() end
+            if hrp:FindFirstChild("ANLU_FlyGyro") then hrp.ANLU_FlyGyro:Destroy() end
+        end
+    end
+end
+
 local function updateMovement(dt)
     if not Toggles or not Options then return end
-    
-    -- 만약 댄스 모드가 켜져있다면 기존 무빙/안티에임 로직을 멈추고 댄스 로직만 적용되게 함
     if Toggles.CFrameDanceToggle and Toggles.CFrameDanceToggle.Value then return end
+    if Toggles.FlyToggle and Toggles.FlyToggle.Value then return end -- 비행 중일때는 무빙 기능 잠시 꺼둠
 
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -459,6 +503,7 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 RunService.Heartbeat:Connect(function(dt)
+    pcall(updateFly)
     pcall(updateMovement, dt)
 end)
 
@@ -512,8 +557,29 @@ workspace.DescendantAdded:Connect(function(d)
     end 
 end)
 
-UserInputService.InputBegan:Connect(function(i, g) if not g then if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end end)
+UserInputService.InputBegan:Connect(function(i, g) 
+    if not g then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end 
+        if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end 
+        if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = true end
+        if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = true end
+        if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = true end
+        if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = true end
+        if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = true end
+        if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = true end
+    end 
+end)
+
+UserInputService.InputEnded:Connect(function(i, g) 
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end 
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end 
+    if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = false end
+    if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = false end
+    if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = false end
+    if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = false end
+    if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = false end
+    if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = false end
+end)
 
 Players.PlayerRemoving:Connect(function(player)
     if espCache[player] then
@@ -532,6 +598,11 @@ end)
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then 
+            if hrp:FindFirstChild("ANLU_Fly") then hrp.ANLU_Fly:Destroy() end
+            if hrp:FindFirstChild("ANLU_FlyGyro") then hrp.ANLU_FlyGyro:Destroy() end
+        end
         if cframeDanceConnection then cframeDanceConnection:Disconnect() end
         FOVCircle:Destroy() if weatherAnchor then weatherAnchor:Destroy() end
         for _, d in pairs(espCache) do
