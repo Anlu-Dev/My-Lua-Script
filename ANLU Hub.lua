@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (CFRAME MATH EMOTE BYPASS)
+-- ANLU Hub(Rivals) - PRO EDITION (FULL BODY SPIN EMOTE BYPASS)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -63,8 +63,9 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local cframeDanceConnection = nil
+local lastDancePos = nil
 
--- 수학 공식으로 관절을 꺾어버리는 함수
+-- 팔다리 꺾는 대신 몸통을 5칸 위로 띄우고 미친듯이 돌리는 절대 회피 댄스
 local function ToggleCFrameDance(state)
     if cframeDanceConnection then
         cframeDanceConnection:Disconnect()
@@ -72,38 +73,30 @@ local function ToggleCFrameDance(state)
     end
 
     if state then
-        cframeDanceConnection = RunService.Stepped:Connect(function()
-            local char = LocalPlayer.Character
-            local torso = char and (char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
-            if not torso then return end
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- 춤추기 시작할 때의 위치를 기억 (공중으로 5칸 상승)
+            lastDancePos = hrp.Position + Vector3.new(0, 5, 0) 
+        end
+
+        cframeDanceConnection = RunService.RenderStepped:Connect(function()
+            local currentChar = LocalPlayer.Character
+            local currentHrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
             
-            -- 캐릭터의 주요 관절 가져오기
-            local rootJoint = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") or torso:FindFirstChild("RootJoint")
-            local neck = torso:FindFirstChild("Neck")
-            local rightShoulder = torso:FindFirstChild("Right Shoulder") or torso:FindFirstChild("RightShoulder")
-            local leftShoulder = torso:FindFirstChild("Left Shoulder") or torso:FindFirstChild("LeftShoulder")
-            
-            local t = tick() * 10 -- 춤추는 속도 조절
-            
-            -- [관절 강제 조작 수학 공식]
-            -- 1. 허리: 위아래로 공중부양하며 미친듯이 회전
-            if rootJoint then
-                rootJoint.Transform = CFrame.new(0, math.sin(t * 0.5) * 2, 0) * CFrame.Angles(0, t, 0)
-            end
-            -- 2. 목: 앞뒤로 미친듯이 까딱거림
-            if neck then
-                neck.Transform = CFrame.Angles(math.sin(t) * 0.8, 0, 0)
-            end
-            -- 3. 오른팔: 위로 들고 휘적거림
-            if rightShoulder then
-                rightShoulder.Transform = CFrame.Angles(math.pi, 0, math.sin(t))
-            end
-            -- 4. 왼팔: 옆으로 들고 휘적거림
-            if leftShoulder then
-                leftShoulder.Transform = CFrame.Angles(math.pi/2, 0, -math.sin(t))
+            if currentHrp and lastDancePos then
+                local t = tick()
+                -- 캐릭터 전체를 강제 회전 & 꿀렁거리게 덮어쓰기
+                currentHrp.CFrame = CFrame.new(
+                    lastDancePos.X, 
+                    lastDancePos.Y + (math.sin(t * 4) * 2), 
+                    lastDancePos.Z
+                ) * CFrame.Angles(0, t * 15, 0)
+                
+                currentHrp.Velocity = Vector3.new(0, 0, 0)
             end
         end)
-        Library:Notify('🚁 공중부양 헬리콥터 댄스 가동!', 3)
+        Library:Notify('🚁 미친 헬리콥터 댄스 가동! (적들이 머리를 못 쏨)', 3)
     else
         Library:Notify('댄스 중지', 2)
     end
@@ -216,7 +209,7 @@ WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', De
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
 -- =============================================================================
--- [ 6. BACKEND CORE ENGINE (SILENT AIM & ESP) ]
+-- [ 6. BACKEND CORE ENGINE ]
 -- =============================================================================
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -367,6 +360,10 @@ end
 
 local function updateMovement(dt)
     if not Toggles or not Options then return end
+    
+    -- 만약 댄스 모드가 켜져있다면 기존 무빙/안티에임 로직을 멈추고 댄스 로직만 적용되게 함
+    if Toggles.CFrameDanceToggle and Toggles.CFrameDanceToggle.Value then return end
+
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
