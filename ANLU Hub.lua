@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (FULL FEATURES RESTORED & TIMEOUT FIXED)
+-- ANLU Hub(Rivals) - PRO EDITION (EMOTE ENGINE OVERRIDE FIXED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -55,11 +55,10 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & EMOTE TAB ]
+-- [ 2. PLAYER MOVEMENT & EMOTE TAB ] (여기 핵심 수정됨)
 -- =============================================================================
 local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Hydra Emote Studio')
 local currentEmoteTrack = nil
-local selectedEmoteId = 0
 
 local function PlayCustomEmote(animationId)
     local Players = game:GetService("Players")
@@ -71,14 +70,23 @@ local function PlayCustomEmote(animationId)
         if animationId == 0 then return end
         
         local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+        
+        -- [해결] FPS 총기 모션 등 진행 중인 애니메이션 강제 정지!
+        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
+        
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://" .. tostring(animationId)
         
         local success, track = pcall(function() return animator:LoadAnimation(anim) end)
         if success and track then
             currentEmoteTrack = track
-            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4
+            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4 -- 최우선 순위
             currentEmoteTrack:Play()
+            Library:Notify('🕺 이모트 재생 성공!', 3)
+        else
+            Library:Notify('❌ 로블록스에서 차단된 ID거나 권한이 없습니다.', 3)
         end
     end
 end
@@ -93,10 +101,24 @@ local EmoteNames = {}
 for name, _ in pairs(EmotePresets) do table.insert(EmoteNames, name) end
 table.sort(EmoteNames)
 
-EmoteGroupBox:AddDropdown('EmoteSelect', { Values = EmoteNames, Default = 1, Text = 'Select Preset Emote', Callback = function(Value) selectedEmoteId = EmotePresets[Value] or 0 end })
-EmoteGroupBox:AddInput('CustomEmoteId', { Default = '', Numeric = true, Finished = true, Text = 'Custom Animation ID', Placeholder = 'Paste Asset ID...', Callback = function(Value) if Value and Value ~= '' then selectedEmoteId = tonumber(Value) or 0 end end })
-EmoteGroupBox:AddButton('Play Animation', function() if selectedEmoteId ~= 0 then PlayCustomEmote(selectedEmoteId) end end)
-EmoteGroupBox:AddButton('Stop Animation', function() if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() currentEmoteTrack = nil end end)
+EmoteGroupBox:AddDropdown('EmoteSelect', { Values = EmoteNames, Default = 1, Text = 'Select Preset Emote' })
+EmoteGroupBox:AddInput('CustomEmoteId', { Default = '', Numeric = true, Finished = true, Text = 'Custom Animation ID', Placeholder = 'Paste Asset ID...' })
+
+-- [해결] 버튼을 누를 때마다 UI 창의 현재 값을 실시간으로 읽어와서 동기화 오류 방지
+EmoteGroupBox:AddButton('Play Animation', function() 
+    local customId = tonumber(Options.CustomEmoteId.Value)
+    if customId and customId > 0 then
+        PlayCustomEmote(customId)
+    else
+        local presetId = EmotePresets[Options.EmoteSelect.Value]
+        if presetId and presetId ~= 0 then PlayCustomEmote(presetId) end
+    end
+end)
+
+EmoteGroupBox:AddButton('Stop Animation', function() 
+    if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() currentEmoteTrack = nil end 
+    Library:Notify('멈춤 완료', 2)
+end)
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
@@ -200,7 +222,7 @@ WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', De
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
 -- =============================================================================
--- [ 6. BACKEND CORE ENGINE (100% RESTORED & SAFE) ]
+-- [ 6. BACKEND CORE ENGINE ]
 -- =============================================================================
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -259,7 +281,6 @@ local function getClosestPlayerToChar()
     return target
 end
 
--- [ ESP 엔진 복구 ]
 local function createEspDrawings(player)
     local d = { Box = Drawing.new("Square"), Fill = Drawing.new("Square"), HealthOutline = Drawing.new("Square"), HealthBar = Drawing.new("Square"), Bones = {}, TopGui = Instance.new("BillboardGui"), TopLabel = Instance.new("TextLabel") }
     d.Box.Thickness = 1.5 d.Box.Filled = false d.Box.Visible = false
@@ -354,7 +375,6 @@ local function updateEsp()
     end
 end
 
--- [ 무빙 복구 ]
 local function updateMovement(dt)
     if not Toggles or not Options then return end
     local char = LocalPlayer.Character
@@ -400,7 +420,6 @@ local function updateMovement(dt)
     end
 end
 
--- [ 사일런트 에임 (안전성 강화 훅) ]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -408,7 +427,6 @@ setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
-    
     if not checkcaller() and typeof(self) == "Instance" and self.Name == "UseItem" and method == "FireServer" then
         if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
             local targetPlayer = getClosestPlayerToMous()
@@ -432,7 +450,6 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- [ 메인 루프 (ESP, Aimbot, Weather) ]
 RunService.RenderStepped:Connect(function(dt)
     if Toggles.ShowFOV.Value then
         FOVCircle.Position = UserInputService:GetMouseLocation()
@@ -443,21 +460,17 @@ RunService.RenderStepped:Connect(function(dt)
     if weatherAnchor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         weatherAnchor.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 25, 0))
     end
-    
     pcall(updateEsp)
     
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
         local targetPlayer = getClosestPlayerToMous()
         if targetPlayer and targetPlayer.Character then
             local targetPart = targetPlayer.Character:FindFirstChild(Options.AimbotPart.Value)
-            if targetPart then
-                Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPart.Position), math.clamp(dt * (21 - Options.Smoothness.Value), 0, 1))
-            end
+            if targetPart then Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPart.Position), math.clamp(dt * (21 - Options.Smoothness.Value), 0, 1)) end
         end
     end
 end)
 
--- [ 무빙 및 패스트 파이어 루프 (Timeout 안 걸리게 task.wait 적용) ]
 RunService.Heartbeat:Connect(function(dt)
     pcall(updateMovement, dt)
 end)
@@ -468,7 +481,7 @@ if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("Fighter", 5) e
 if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("UseItem", 5) end
 
 task.spawn(function()
-    while task.wait(0.1) do -- 0.1초 딜레이로 엔진 타임아웃 절대 방어
+    while task.wait(0.1) do
         if Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking and UseItemRemote then
             local targetPlayer = getClosestPlayerToMous()
             local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -488,7 +501,6 @@ task.spawn(function()
     end
 end)
 
--- [ 레이지 봇 (총알 유도) 복구 ]
 workspace.DescendantAdded:Connect(function(d) 
     if Toggles and Toggles.RageBotToggle and Toggles.RageBotToggle.Value and (d.Name:lower():find("bullet") or d.Name:lower():find("projectile") or d:IsA("BasePart")) then
         if d.Name:lower():find("bullet") or d.Name:lower():find("projectile") then
