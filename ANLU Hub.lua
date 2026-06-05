@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE KOREAN INTEGRATION & FULL RESTORE)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE ENGLISH INTEGRATION & FULL RESTORE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -7,57 +7,56 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-    Title = 'ANLU Hub(Rivals) - 프로 에디션',
+    Title = 'ANLU Hub(Rivals) - PRO EDITION',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
     MenuFadeTime = 0.1
 })
 
--- [ 완벽 복구된 탭 메뉴들 ]
 local Tabs = {
-    Main = Window:AddTab('메인(전투)'),
-    Player = Window:AddTab('플레이어(무빙)'),
-    Visuals = Window:AddTab('시각효과(ESP)'),
-    World = Window:AddTab('월드(날씨)'),
-    Misc = Window:AddTab('기타(유틸)'),
-    ['UI Settings'] = Window:AddTab('메뉴 설정')
+    Main = Window:AddTab('Main'),
+    Player = Window:AddTab('Player'),
+    Visuals = Window:AddTab('Visuals'),
+    World = Window:AddTab('World'),
+    Misc = Window:AddTab('Misc'),
+    ['UI Settings'] = Window:AddTab('UI Settings')
 }
 
 -- =============================================================================
 -- [ 1. MAIN COMBAT TAB ]
 -- =============================================================================
-local AimbotTab = Tabs.Main:AddLeftGroupbox('카메라 자동 조준 (에임봇)')
-AimbotTab:AddToggle('AimbotEnabled', { Text = '에임봇 켜기 (우클릭)', Default = false })
-AimbotTab:AddSlider('Smoothness', { Text = '에임 부드러움 조절', Default = 8, Min = 1, Max = 20, Rounding = 1 })
-AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = '조준 부위 설정' })
+local AimbotTab = Tabs.Main:AddLeftGroupbox('Camera Lock-on Aimbot')
+AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = false })
+AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
+AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = 'Target Part' })
 
-local RageMainBox = Tabs.Main:AddLeftGroupbox('하이퍼 레이지 봇')
-RageMainBox:AddToggle('RageBotToggle', { Text = '총알 유도 켜기 (Rage)', Default = false })
-RageMainBox:AddSlider('BaseVelocity', { Text = '최소 총알 속도', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
+local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
+RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
+RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 
-local SilentTab = Tabs.Main:AddRightGroupbox('하이퍼 사일런트 에임')
-SilentTab:AddToggle('SilentEnabled', { Text = '사일런트 에임 켜기', Default = true })
-SilentTab:AddToggle('WallBang', { Text = '월뱅 (벽 뚫고 쏘기)', Default = true })
-SilentTab:AddToggle('PredictiveShot', { Text = '예측 샷 엔진', Default = true })
-SilentTab:AddToggle('ClosestPart', { Text = '가장 가까운 부위 자동 타겟', Default = true })
-SilentTab:AddToggle('ShowFOV', { Text = '인식 범위(FOV) 원 표시', Default = false })
-SilentTab:AddSlider('Radius', { Text = '인식 범위(FOV) 크기', Default = 400, Min = 0, Max = 1000, Rounding = 0 })
-SilentTab:AddSlider('HitChance', { Text = '명중률 (%)', Default = 100, Min = 0, Max = 100, Rounding = 0 })
+local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
+SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
+SilentTab:AddToggle('WallBang', { Text = 'Wall Bang (Penetration)', Default = true })
+SilentTab:AddToggle('PredictiveShot', { Text = 'Prediction Engine', Default = true })
+SilentTab:AddToggle('ClosestPart', { Text = 'Auto Target Closest Part', Default = true })
+SilentTab:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = false })
+SilentTab:AddSlider('Radius', { Text = 'FOV Radius Size', Default = 400, Min = 0, Max = 1000, Rounding = 0 })
+SilentTab:AddSlider('HitChance', { Text = 'Hit Chance (%)', Default = 100, Min = 0, Max = 100, Rounding = 0 })
 
-local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('안티 에임 (회피기)')
-AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = '안티 에임 켜기', Default = false })
+local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('Hydra Anti-Aim')
+AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = 'Enable Anti-Aim', Default = false })
 AntiAimGroupBox:AddDropdown('AntiAimMode', { 
     Values = { 'Hyper Spinbot', 'Backwards', 'Matrix Break', 'Pitch Flip', 'Fake Jitter' }, 
     Default = 1, 
-    Text = '안티 에임 스타일' 
+    Text = 'Anti-Aim Style' 
 })
-AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = '회전/글리치 속도', Default = 150, Min = 10, Max = 500, Rounding = 0 })
+AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
 -- [ 2. PLAYER MOVEMENT & GLITCH EMOTE TAB ] 
 -- =============================================================================
-local GlitchGroupBox = Tabs.Player:AddLeftGroupbox('시점 고정 WASD 글리치 댄스')
+local GlitchGroupBox = Tabs.Player:AddLeftGroupbox('Math Stationary Glitch Emote')
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -111,56 +110,56 @@ local function ToggleStationaryGlitch(state)
                 if rShoulder then rShoulder.Transform = CFrame.Angles(math.rad(tick() * 100), math.rad(80), 0) end
             end
         end)
-        Library:Notify('🕺 고정형 WASD 글리치 가동!', 3)
+        Library:Notify('🕺 Static WASD Glitch Enabled!', 3)
     else
-        Library:Notify('글리치 댄스 중지', 2)
+        Library:Notify('Glitch Stopped', 2)
     end
 end
 
-GlitchGroupBox:AddToggle('GlitchDanceToggle', { Text = 'WASD 글리치 모드 켜기', Default = false }):OnChanged(function() ToggleStationaryGlitch(Toggles.GlitchDanceToggle.Value) end)
+GlitchGroupBox:AddToggle('GlitchDanceToggle', { Text = 'Enable Static WASD Glitch', Default = false }):OnChanged(function() ToggleStationaryGlitch(Toggles.GlitchDanceToggle.Value) end)
 
-local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('플레이어 유틸리티')
-UtilsGroupBox:AddToggle('InfJumpToggle', { Text = '무한 점프 켜기', Default = false })
-UtilsGroupBox:AddToggle('FlyToggle', { Text = '비행 모드 (Fly)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
-UtilsGroupBox:AddSlider('FlySpeed', { Text = '비행 속도', Default = 50, Min = 16, Max = 100000, Rounding = 0 })
-UtilsGroupBox:AddToggle('NoclipToggle', { Text = '벽 뚫기 (Noclip)', Default = false }):AddKeyPicker('NoclipKey', { Default = 'N', SyncToggleState = true, Mode = 'Toggle', Text = 'Noclip Toggle' })
-UtilsGroupBox:AddToggle('AutoStrafeToggle', { Text = '자동 좌우 회피 (Auto Strafe)', Default = false })
-UtilsGroupBox:AddSlider('AutoStrafeSpeed', { Text = '회피 속도', Default = 30, Min = 10, Max = 200, Rounding = 0 })
+local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
+UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
+UtilsGroupBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Flight)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
+UtilsGroupBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 100000, Rounding = 0 })
+UtilsGroupBox:AddToggle('NoclipToggle', { Text = 'Enable Noclip (Walk through walls)', Default = false }):AddKeyPicker('NoclipKey', { Default = 'N', SyncToggleState = true, Mode = 'Toggle', Text = 'Noclip Toggle' })
+UtilsGroupBox:AddToggle('AutoStrafeToggle', { Text = 'Enable Auto Strafe (Evasion)', Default = false })
+UtilsGroupBox:AddSlider('AutoStrafeSpeed', { Text = 'Auto Strafe Power', Default = 30, Min = 10, Max = 200, Rounding = 0 })
 
-local VoidGroupBox = Tabs.Player:AddLeftGroupbox('보이드 텔레포트')
-VoidGroupBox:AddSlider('VoidSpamDepth', { Text = '보이드 깊이 (Y축)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
-VoidGroupBox:AddToggle('VoidSpamToggle', { Text = '보이드 스팸 켜기 (안티 히트박스)', Default = false })
+local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
+VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
+VoidGroupBox:AddToggle('VoidSpamToggle', { Text = 'Void Spam (Anti-Hitbox)', Default = false })
 
-local PlayerBox = Tabs.Player:AddRightGroupbox('고급 무빙 조작')
-PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 주위 돌기 켜기', Default = false })
-PlayerBox:AddSlider('TeleportHeight', { Text = '텔레포트 높이 오프셋', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
-PlayerBox:AddSlider('StrafeDuration', { Text = '텔레포트 순환 주기', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
-PlayerBox:AddDropdown('MovementTargetMode', { Values = { '가장 가까운 유저', '특정 유저 선택' }, Default = 1, Text = '타겟 추적 우선순위' })
-PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = '타겟 유저 선택' })
+local PlayerBox = Tabs.Player:AddRightGroupbox('Movement Modification')
+PlayerBox:AddToggle('StrafeToggle', { Text = 'Enable Target Strafe', Default = false })
+PlayerBox:AddSlider('TeleportHeight', { Text = 'Teleport Height Offset', Default = 3.5, Min = 0, Max = 20, Rounding = 1 })
+PlayerBox:AddSlider('StrafeDuration', { Text = 'Teleport Cycle Interval', Default = 0.5, Min = 0.1, Max = 2, Rounding = 1 })
+PlayerBox:AddDropdown('MovementTargetMode', { Values = { 'Closest Player', 'Select Specific Player' }, Default = 1, Text = 'Target Tracking Priority' })
+PlayerBox:AddDropdown('OrbitTargetPlayer', { SpecialType = 'Player', Text = 'Select Target Player' })
 
-local OrbitGroupBox = Tabs.Player:AddRightGroupbox('궤도(Orbit) 오라')
-OrbitGroupBox:AddToggle('OrbitToggle', { Text = '궤도 오라 켜기', Default = false })
-OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { '맵 중앙 (0,0,0)', '추적 대상 위치' }, Default = 2, Text = '회전 기준점' })
-OrbitGroupBox:AddSlider('OrbitRadius', { Text = '궤도 반지름', Default = 8, Min = 2, Max = 100, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitSpeed', { Text = '궤도 회전 속도', Default = 150, Min = 1, Max = 500, Rounding = 0 })
-OrbitGroupBox:AddSlider('OrbitHeight', { Text = '궤도 높이 오프셋', Default = 3, Min = -50, Max = 50, Rounding = 0 })
+local OrbitGroupBox = Tabs.Player:AddRightGroupbox('Orbit Aura Physics')
+OrbitGroupBox:AddToggle('OrbitToggle', { Text = 'Enable Orbit Aura', Default = false })
+OrbitGroupBox:AddDropdown('OrbitTargetMode', { Values = { 'Map Center (0,0,0)', 'Tracked Target Position' }, Default = 2, Text = 'Rotation Anchor' })
+OrbitGroupBox:AddSlider('OrbitRadius', { Text = 'Orbit Radius', Default = 8, Min = 2, Max = 100, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Speed', Default = 150, Min = 1, Max = 500, Rounding = 0 })
+OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset', Default = 3, Min = -50, Max = 50, Rounding = 0 })
 
 -- =============================================================================
 -- [ 3. VISUALS ESP TAB ]
 -- =============================================================================
-local EspGroupBox = Tabs.Visuals:AddLeftGroupbox('플레이어 ESP 설정')
-EspGroupBox:AddToggle('EspBox', { Text = '테두리 박스 (Box)', Default = false }):AddColorPicker('BoxColor', { Default = Color3.fromRGB(255, 255, 255) })
-EspGroupBox:AddToggle('EspFill', { Text = '박스 내부 채우기 (Fill)', Default = false }):AddColorPicker('FillColor', { Default = Color3.fromRGB(240, 200, 220) })
-EspGroupBox:AddToggle('EspSkeleton', { Text = '뼈대 표시 (Skeleton)', Default = false }):AddColorPicker('SkeletonColor', { Default = Color3.fromRGB(255, 255, 255) })
-EspGroupBox:AddToggle('EspName', { Text = '이름 표시 (Name)', Default = false }):AddColorPicker('NameColor', { Default = Color3.fromRGB(255, 255, 255) })
-EspGroupBox:AddToggle('EspDistance', { Text = '거리 표시 (Distance)', Default = false }):AddColorPicker('DistanceColor', { Default = Color3.fromRGB(255, 255, 255) })
-EspGroupBox:AddToggle('EspHealthBar', { Text = '체력바 표시 (Health)', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
+local EspGroupBox = Tabs.Visuals:AddLeftGroupbox('Player ESP Options')
+EspGroupBox:AddToggle('EspBox', { Text = 'Bounding Box', Default = false }):AddColorPicker('BoxColor', { Default = Color3.fromRGB(255, 255, 255) })
+EspGroupBox:AddToggle('EspFill', { Text = 'Box Fill Transparency', Default = false }):AddColorPicker('FillColor', { Default = Color3.fromRGB(240, 200, 220) })
+EspGroupBox:AddToggle('EspSkeleton', { Text = 'Skeleton Bones', Default = false }):AddColorPicker('SkeletonColor', { Default = Color3.fromRGB(255, 255, 255) })
+EspGroupBox:AddToggle('EspName', { Text = 'Display Player Name', Default = false }):AddColorPicker('NameColor', { Default = Color3.fromRGB(255, 255, 255) })
+EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = false }):AddColorPicker('DistanceColor', { Default = Color3.fromRGB(255, 255, 255) })
+EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. WORLD EFFECTS TAB ] (복구 완료!)
+-- [ 4. WORLD EFFECTS TAB ] 
 -- =============================================================================
-local WeatherGroupBox = Tabs.World:AddLeftGroupbox('날씨 시스템 조작')
-local AmbientGroupBox = Tabs.World:AddRightGroupbox('대기 및 환경')
+local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
+local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
 local Camera = workspace.CurrentCamera
 
 local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
@@ -176,7 +175,7 @@ end
 
 local snowPE, rainPE = nil, nil
 
-WeatherGroupBox:AddToggle('SnowEffect', { Text = '눈 내리기 효과 켜기', Default = false }):OnChanged(function()
+WeatherGroupBox:AddToggle('SnowEffect', { Text = 'Enable Snow Effect', Default = false }):OnChanged(function()
     if Toggles.SnowEffect.Value then
         if not snowPE then
             snowPE = Instance.new("ParticleEmitter", weatherAnchor)
@@ -195,7 +194,7 @@ WeatherGroupBox:AddToggle('SnowEffect', { Text = '눈 내리기 효과 켜기', 
     end
 end)
 
-WeatherGroupBox:AddToggle('RainEffect', { Text = '비 내리기 효과 켜기', Default = false }):OnChanged(function()
+WeatherGroupBox:AddToggle('RainEffect', { Text = 'Enable Rain Effect', Default = false }):OnChanged(function()
     if Toggles.RainEffect.Value then
         if not rainPE then
             rainPE = Instance.new("ParticleEmitter", weatherAnchor)
@@ -214,21 +213,21 @@ WeatherGroupBox:AddToggle('RainEffect', { Text = '비 내리기 효과 켜기', 
     end
 end)
 
-AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = '안개(대기) 밀도', Default = 0, Min = 0, Max = 100, Rounding = 0 }):OnChanged(function()
+AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = 'Atmosphere Density', Default = 0, Min = 0, Max = 100, Rounding = 0 }):OnChanged(function()
     local lighting = game:GetService("Lighting")
     local atmos = lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", lighting)
     atmos.Density = Options.AtmosphereDensity.Value / 100
 end)
 
 -- =============================================================================
--- [ 5. MISC TAB ] (무기 복사 포함)
+-- [ 5. MISC TAB ] 
 -- =============================================================================
-local WeaponModBox = Tabs.Misc:AddLeftGroupbox('무기 설정 (오버클럭)')
-WeaponModBox:AddToggle('FastFireToggle', { Text = '초고속 연사 켜기', Default = false })
-WeaponModBox:AddSlider('FireRateMultiplier', { Text = '연사 배속 조절', Default = 4, Min = 1, Max = 10, Rounding = 0 })
+local WeaponModBox = Tabs.Misc:AddLeftGroupbox('Network Packet Overclock')
+WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', Default = false })
+WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
-local InventoryBox = Tabs.Misc:AddLeftGroupbox('인벤토리 조작')
-InventoryBox:AddButton('현재 든 무기 4개로 복사하기', function()
+local InventoryBox = Tabs.Misc:AddLeftGroupbox('Inventory Modification')
+InventoryBox:AddButton('Duplicate Current Weapon x4', function()
     local char = LocalPlayer.Character
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     
@@ -239,12 +238,12 @@ InventoryBox:AddButton('현재 든 무기 4개로 복사하기', function()
                 local clonedTool = currentTool:Clone()
                 clonedTool.Parent = backpack
             end
-            Library:Notify('🔥 들고 있는 무기를 4개로 복사했습니다!', 3)
+            Library:Notify('🔥 Duplicated currently held tool 4 times!', 3)
         else
-            Library:Notify('❌ 복사할 무기를 먼저 손에 들어주세요!', 3)
+            Library:Notify('❌ Please equip a tool to duplicate first!', 3)
         end
     else
-        Library:Notify('❌ 인벤토리를 찾을 수 없습니다.', 3)
+        Library:Notify('❌ Backpack not found.', 3)
     end
 end)
 
@@ -482,7 +481,7 @@ local function updateMovement(dt)
         return 
     end
 
-    local targetPlayer = Options.MovementTargetMode.Value == '가장 가까운 유저' and getClosestPlayerToChar() or Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
+    local targetPlayer = Options.MovementTargetMode.Value == 'Closest Player' and getClosestPlayerToChar() or Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
     local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
 
@@ -491,7 +490,7 @@ local function updateMovement(dt)
         if now - lastStrafeTime > (cycle * 2) then lastStrafeTime = now end
         lastNormalCFrame = (now - lastStrafeTime < cycle) and CFrame.lookAt(targetHeadPos, Vector3.new(targetHrp.Position.X, targetHeadPos.Y, targetHrp.Position.Z)) or hrp.CFrame
     elseif orbit then
-        local center = Options.OrbitTargetMode.Value == '맵 중앙 (0,0,0)' and Vector3.new(0,0,0) or (targetHrp and targetHrp.Position or hrp.Position)
+        local center = Options.OrbitTargetMode.Value == 'Map Center (0,0,0)' and Vector3.new(0,0,0) or (targetHrp and targetHrp.Position or hrp.Position)
         angle = angle + (Options.OrbitSpeed.Value * dt)
         lastNormalCFrame = CFrame.lookAt(Vector3.new(center.X + math.cos(angle)*Options.OrbitRadius.Value, center.Y + Options.OrbitHeight.Value, center.Z + math.sin(angle)*Options.OrbitRadius.Value), center)
     else
@@ -663,8 +662,8 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('설정 메뉴')
-MenuGroup:AddButton('스크립트 끄기 (Unload)', function() 
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then 
