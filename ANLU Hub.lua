@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE ENGLISH INTEGRATION & FULL RESTORE)
+-- ANLU Hub(Rivals) - PRO EDITION (UI SETTINGS & UTILITIES UPGRADED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -250,7 +250,6 @@ end)
 -- =============================================================================
 -- [ 6. BACKEND CORE ENGINE ]
 -- =============================================================================
-local CoreGui = game:GetService("CoreGui")
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking, isRightMouseDown = false, false
 local espCache = {}
@@ -662,7 +661,10 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+-- =============================================================================
+-- [ 7. UI SETTINGS & MANAGERS ] (Here is the Massive Upgrade!)
+-- =============================================================================
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu Options')
 MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -680,6 +682,27 @@ MenuGroup:AddButton('Unload Script', function()
     end)
     Library:Unload() 
 end)
+
+MenuGroup:AddLabel('Menu Bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
+Library.ToggleKeybind = Options.MenuKeybind
+
+local ExtraBox = Tabs['UI Settings']:AddRightGroupbox('Extra Utilities')
+ExtraBox:AddToggle('ShowWatermark', { Text = 'Show Watermark', Default = true }):OnChanged(function()
+    Library:SetWatermarkVisibility(Toggles.ShowWatermark.Value)
+end)
+Library:SetWatermark('ANLU Hub(Rivals) - PRO EDITION')
+
+ExtraBox:AddToggle('ShowKeybinds', { Text = 'Show Active Keybinds', Default = false }):OnChanged(function()
+    Library.KeybindFrame.Visible = Toggles.ShowKeybinds.Value
+end)
+
+-- Properly initializing the Managers so the UI Settings tab fills up completely
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+ThemeManager:SetFolder('ANLUHub')
+SaveManager:SetFolder('ANLUHub/Rivals')
 
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
