@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (FLY SYSTEM & CFRAME EMOTE)
+-- ANLU Hub(Rivals) - PRO EDITION (FLY SYSTEM DEDICATED UI)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -55,10 +55,14 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & CFRAME EMOTE TAB ] 
+-- [ 2. PLAYER MOVEMENT & FLY TAB ]
 -- =============================================================================
-local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Math CFrame Emote Bypass')
+-- [핵심] 눈에 확 띄도록 Fly 기능을 맨 위 그룹박스로 분리했습니다!
+local FlyBox = Tabs.Player:AddLeftGroupbox('🦅 Flight System (Fly)')
+FlyBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Press F)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
+FlyBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 300, Rounding = 0 })
 
+local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Math CFrame Emote Bypass')
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -84,21 +88,16 @@ local function ToggleCFrameDance(state)
                 currentHrp.Velocity = Vector3.new(0, 0, 0)
             end
         end)
-        Library:Notify('🚁 미친 헬리콥터 댄스 가동! (적들이 머리를 못 쏨)', 3)
+        Library:Notify('🚁 미친 헬리콥터 댄스 가동!', 3)
     else
         Library:Notify('댄스 중지', 2)
     end
 end
 
-EmoteGroupBox:AddToggle('CFrameDanceToggle', { Text = 'Enable Crazy Levitation Dance', Default = false }):OnChanged(function()
-    ToggleCFrameDance(Toggles.CFrameDanceToggle.Value)
-end)
+EmoteGroupBox:AddToggle('CFrameDanceToggle', { Text = 'Enable Crazy Levitation Dance', Default = false }):OnChanged(function() ToggleCFrameDance(Toggles.CFrameDanceToggle.Value) end)
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
--- [추가됨] FLY 기능
-UtilsGroupBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Flight)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly' })
-UtilsGroupBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 300, Rounding = 0 })
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
@@ -381,7 +380,6 @@ local function updateFly()
         end
         bv.Velocity = moveDir * Options.FlySpeed.Value
 
-        -- 방향 틀기 (안티에임/댄스와 안 겹치게)
         if not Toggles.AntiAimToggle.Value and not Toggles.CFrameDanceToggle.Value then
             local bg = hrp:FindFirstChild("ANLU_FlyGyro")
             if not bg then
@@ -406,7 +404,7 @@ end
 local function updateMovement(dt)
     if not Toggles or not Options then return end
     if Toggles.CFrameDanceToggle and Toggles.CFrameDanceToggle.Value then return end
-    if Toggles.FlyToggle and Toggles.FlyToggle.Value then return end -- 비행 중일때는 무빙 기능 잠시 꺼둠
+    if Toggles.FlyToggle and Toggles.FlyToggle.Value then return end 
 
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
