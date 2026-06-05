@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (FLY SYSTEM DEDICATED UI)
+-- ANLU Hub(Rivals) - PRO EDITION (FLY SPEED MAX 100,000)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -55,13 +55,8 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & FLY TAB ]
+-- [ 2. PLAYER MOVEMENT & CFRAME EMOTE TAB ] 
 -- =============================================================================
--- [핵심] 눈에 확 띄도록 Fly 기능을 맨 위 그룹박스로 분리했습니다!
-local FlyBox = Tabs.Player:AddLeftGroupbox('🦅 Flight System (Fly)')
-FlyBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Press F)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
-FlyBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 300, Rounding = 0 })
-
 local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Math CFrame Emote Bypass')
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -98,6 +93,9 @@ EmoteGroupBox:AddToggle('CFrameDanceToggle', { Text = 'Enable Crazy Levitation D
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
+-- [변경점] Fly 속도의 Max 값을 100000으로 수정했습니다!
+UtilsGroupBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Flight)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
+UtilsGroupBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 100000, Rounding = 0 })
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
