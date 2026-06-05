@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + DEVICE SPOOFER)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + VR/CONSOLE SPOOFER)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -28,6 +28,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
+local VRService = game:GetService("VRService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -241,7 +242,7 @@ end)
 local SpooferBox = Tabs.Misc:AddRightGroupbox('System Spoofer (기기 위조)')
 SpooferBox:AddToggle('DeviceSpooferToggle', { Text = 'Device Spoofer (기기 속이기)', Default = false })
 SpooferBox:AddDropdown('DeviceMode', { 
-    Values = { 'PC', 'Mobile', 'Console' }, 
+    Values = { 'PC', 'Mobile', 'Console', 'VR' }, 
     Default = 2, 
     Text = '위조할 기기 선택' 
 })
@@ -494,6 +495,11 @@ setreadonly(mt, false)
 mt.__index = newcclosure(function(self, key)
     if not checkcaller() and Toggles and Toggles.DeviceSpooferToggle and Toggles.DeviceSpooferToggle.Value then
         local mode = Options.DeviceMode.Value
+        
+        if self == VRService and key == "VREnabled" then
+            if mode == "VR" then return true else return false end
+        end
+        
         if self == UserInputService then
             if mode == "Mobile" then
                 if key == "TouchEnabled" then return true end
@@ -516,9 +522,15 @@ mt.__namecall = newcclosure(function(self, ...)
     local args = {...}
     
     if not checkcaller() and Toggles and Toggles.DeviceSpooferToggle and Toggles.DeviceSpooferToggle.Value then
+        local mode = Options.DeviceMode.Value
+        
         if self == GuiService and method == "IsTenFootInterface" then
-            if Options.DeviceMode.Value == "Console" then return true end
+            if mode == "Console" then return true end
             return false
+        end
+        
+        if self == UserInputService and method == "GetGamepadConnected" then
+            if mode == "Console" then return true end
         end
     end
     
