@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (EMOTE ENGINE OVERRIDE FIXED)
+-- ANLU Hub(Rivals) - PRO EDITION (CFRAME MATH EMOTE BYPASS)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -55,69 +55,62 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & EMOTE TAB ] (여기 핵심 수정됨)
+-- [ 2. PLAYER MOVEMENT & CFRAME EMOTE TAB ] 
 -- =============================================================================
-local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Hydra Emote Studio')
-local currentEmoteTrack = nil
+local EmoteGroupBox = Tabs.Player:AddLeftGroupbox('Math CFrame Emote Bypass')
 
-local function PlayCustomEmote(animationId)
-    local Players = game:GetService("Players")
-    local character = Players.LocalPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    
-    if humanoid then
-        if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() currentEmoteTrack = nil end
-        if animationId == 0 then return end
-        
-        local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
-        
-        -- [해결] FPS 총기 모션 등 진행 중인 애니메이션 강제 정지!
-        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-            track:Stop()
-        end
-        
-        local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://" .. tostring(animationId)
-        
-        local success, track = pcall(function() return animator:LoadAnimation(anim) end)
-        if success and track then
-            currentEmoteTrack = track
-            currentEmoteTrack.Priority = Enum.AnimationPriority.Action4 -- 최우선 순위
-            currentEmoteTrack:Play()
-            Library:Notify('🕺 이모트 재생 성공!', 3)
-        else
-            Library:Notify('❌ 로블록스에서 차단된 ID거나 권한이 없습니다.', 3)
-        end
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local cframeDanceConnection = nil
+
+-- 수학 공식으로 관절을 꺾어버리는 함수
+local function ToggleCFrameDance(state)
+    if cframeDanceConnection then
+        cframeDanceConnection:Disconnect()
+        cframeDanceConnection = nil
+    end
+
+    if state then
+        cframeDanceConnection = RunService.Stepped:Connect(function()
+            local char = LocalPlayer.Character
+            local torso = char and (char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+            if not torso then return end
+            
+            -- 캐릭터의 주요 관절 가져오기
+            local rootJoint = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") or torso:FindFirstChild("RootJoint")
+            local neck = torso:FindFirstChild("Neck")
+            local rightShoulder = torso:FindFirstChild("Right Shoulder") or torso:FindFirstChild("RightShoulder")
+            local leftShoulder = torso:FindFirstChild("Left Shoulder") or torso:FindFirstChild("LeftShoulder")
+            
+            local t = tick() * 10 -- 춤추는 속도 조절
+            
+            -- [관절 강제 조작 수학 공식]
+            -- 1. 허리: 위아래로 공중부양하며 미친듯이 회전
+            if rootJoint then
+                rootJoint.Transform = CFrame.new(0, math.sin(t * 0.5) * 2, 0) * CFrame.Angles(0, t, 0)
+            end
+            -- 2. 목: 앞뒤로 미친듯이 까딱거림
+            if neck then
+                neck.Transform = CFrame.Angles(math.sin(t) * 0.8, 0, 0)
+            end
+            -- 3. 오른팔: 위로 들고 휘적거림
+            if rightShoulder then
+                rightShoulder.Transform = CFrame.Angles(math.pi, 0, math.sin(t))
+            end
+            -- 4. 왼팔: 옆으로 들고 휘적거림
+            if leftShoulder then
+                leftShoulder.Transform = CFrame.Angles(math.pi/2, 0, -math.sin(t))
+            end
+        end)
+        Library:Notify('🚁 공중부양 헬리콥터 댄스 가동!', 3)
+    else
+        Library:Notify('댄스 중지', 2)
     end
 end
 
-local EmotePresets = {
-    ["Stop Emote"] = 0, ["Default Dance"] = 507468474, ["Floss"] = 10214312386, ["Take The L"] = 10214314410,
-    ["Hype"] = 10214311896, ["Orange Justice"] = 10214312845, ["T-Pose"] = 10479375172, ["Griddy"] = 11130453311,
-    ["Wave"] = 128743149, ["Dance 1"] = 182435877, ["Dance 2"] = 182436842, ["Dance 3"] = 182436935
-}
-
-local EmoteNames = {}
-for name, _ in pairs(EmotePresets) do table.insert(EmoteNames, name) end
-table.sort(EmoteNames)
-
-EmoteGroupBox:AddDropdown('EmoteSelect', { Values = EmoteNames, Default = 1, Text = 'Select Preset Emote' })
-EmoteGroupBox:AddInput('CustomEmoteId', { Default = '', Numeric = true, Finished = true, Text = 'Custom Animation ID', Placeholder = 'Paste Asset ID...' })
-
--- [해결] 버튼을 누를 때마다 UI 창의 현재 값을 실시간으로 읽어와서 동기화 오류 방지
-EmoteGroupBox:AddButton('Play Animation', function() 
-    local customId = tonumber(Options.CustomEmoteId.Value)
-    if customId and customId > 0 then
-        PlayCustomEmote(customId)
-    else
-        local presetId = EmotePresets[Options.EmoteSelect.Value]
-        if presetId and presetId ~= 0 then PlayCustomEmote(presetId) end
-    end
-end)
-
-EmoteGroupBox:AddButton('Stop Animation', function() 
-    if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() currentEmoteTrack = nil end 
-    Library:Notify('멈춤 완료', 2)
+EmoteGroupBox:AddToggle('CFrameDanceToggle', { Text = 'Enable Crazy Levitation Dance', Default = false }):OnChanged(function()
+    ToggleCFrameDance(Toggles.CFrameDanceToggle.Value)
 end)
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
@@ -156,6 +149,7 @@ EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = fa
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
+local Camera = workspace.CurrentCamera
 
 local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
 if not weatherAnchor then
@@ -222,14 +216,10 @@ WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', De
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
 
 -- =============================================================================
--- [ 6. BACKEND CORE ENGINE ]
+-- [ 6. BACKEND CORE ENGINE (SILENT AIM & ESP) ]
 -- =============================================================================
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking, isRightMouseDown = false, false
@@ -545,8 +535,8 @@ end)
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload Script', function() 
     pcall(function()
+        if cframeDanceConnection then cframeDanceConnection:Disconnect() end
         FOVCircle:Destroy() if weatherAnchor then weatherAnchor:Destroy() end
-        if currentEmoteTrack then currentEmoteTrack:Stop() currentEmoteTrack:Destroy() end
         for _, d in pairs(espCache) do
             if d.Box then d.Box:Destroy() end if d.Fill then d.Fill:Destroy() end
             if d.HealthOutline then d.HealthOutline:Destroy() end if d.HealthBar then d.HealthBar:Destroy() end
