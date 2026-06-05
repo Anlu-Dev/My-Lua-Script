@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + VR/CONSOLE SPOOFER)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + REMOTE SPOOFER)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -27,8 +27,6 @@ local Tabs = {
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
-local VRService = game:GetService("VRService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -238,20 +236,44 @@ InventoryBox:AddButton('Duplicate Current Weapon x4', function()
     end
 end)
 
--- [ 📱 SYSTEM DEVICE SPOOFER ]
+-- [ 📱 찐 최종: NETWORK DEVICE SPOOFER ]
 local SpooferBox = Tabs.Misc:AddRightGroupbox('System Spoofer (기기 위조)')
-SpooferBox:AddToggle('DeviceSpooferToggle', { Text = 'Device Spoofer (기기 속이기)', Default = false })
+
 SpooferBox:AddDropdown('DeviceMode', { 
     Values = { 'PC', 'Mobile', 'Console', 'VR' }, 
-    Default = 2, 
+    Default = 1, 
     Text = '위조할 기기 선택' 
-})
+}):OnChanged(function()
+    -- 드롭다운 값이 바뀔 때마다 서버로 위조 패킷을 전송!
+    pcall(function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        if remotes then
+            local setControlsRemote = remotes:WaitForChild("Replication", 2):WaitForChild("Fighter", 2):WaitForChild("SetControls", 2)
+            
+            if setControlsRemote then
+                local mode = Options.DeviceMode.Value
+                local targetDevice = "MouseKeyboard"
+                
+                if mode == "Mobile" then targetDevice = "Touch"
+                elseif mode == "Console" then targetDevice = "Gamepad"
+                elseif mode == "VR" then targetDevice = "VR"
+                end
+                
+                -- 작동 원리: PC로 먼저 리셋한 뒤 목표 기기로 변경하여 게임 엔진 트리거
+                setControlsRemote:FireServer("MouseKeyboard")
+                task.wait(0.3)
+                setControlsRemote:FireServer(targetDevice)
+                
+                Library:Notify("📱 서버에 기기 위조 신호 전송 완료: " .. mode, 3)
+            end
+        end
+    end)
+end)
 
 -- =============================================================================
 -- [ 6. BACKEND CORE ENGINE & HELPER FUNCTIONS ]
 -- =============================================================================
 
--- [ Helper Functions ]
 local function getClosestPlayerToMous()
     if not Options or not Options.Radius then return nil end
     local target, maxDist = nil, Options.Radius.Value
@@ -486,53 +508,14 @@ local function updateMovement(dt)
     end
 end
 
--- [ 🌟 METATABLE HOOKING (NAME_CALL & INDEX) ]
+-- [ 🌟 METATABLE HOOKING (NAME_CALL - SILENT AIM) ]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
-local oldIndex = mt.__index
 setreadonly(mt, false)
-
-mt.__index = newcclosure(function(self, key)
-    if not checkcaller() and Toggles and Toggles.DeviceSpooferToggle and Toggles.DeviceSpooferToggle.Value then
-        local mode = Options.DeviceMode.Value
-        
-        if self == VRService and key == "VREnabled" then
-            if mode == "VR" then return true else return false end
-        end
-        
-        if self == UserInputService then
-            if mode == "Mobile" then
-                if key == "TouchEnabled" then return true end
-                if key == "KeyboardEnabled" then return false end
-            elseif mode == "Console" then
-                if key == "GamepadEnabled" then return true end
-                if key == "KeyboardEnabled" then return false end
-            elseif mode == "PC" then
-                if key == "KeyboardEnabled" then return true end
-                if key == "TouchEnabled" then return false end
-                if key == "GamepadEnabled" then return false end
-            end
-        end
-    end
-    return oldIndex(self, key)
-end)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
-    
-    if not checkcaller() and Toggles and Toggles.DeviceSpooferToggle and Toggles.DeviceSpooferToggle.Value then
-        local mode = Options.DeviceMode.Value
-        
-        if self == GuiService and method == "IsTenFootInterface" then
-            if mode == "Console" then return true end
-            return false
-        end
-        
-        if self == UserInputService and method == "GetGamepadConnected" then
-            if mode == "Console" then return true end
-        end
-    end
     
     if not checkcaller() and typeof(self) == "Instance" and self.Name == "UseItem" and method == "FireServer" then
         if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
