@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE INTEGRATION)
+-- ANLU Hub(Rivals) - PRO EDITION (STABLE & DEVICE SPOOFER INTEGRATED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -22,6 +22,15 @@ local Tabs = {
     Misc = Window:AddTab('Misc'),
     ['UI Settings'] = Window:AddTab('UI Settings')
 }
+
+-- [ Services & Variables ]
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- =============================================================================
 -- [ 1. MAIN COMBAT TAB ]
@@ -57,26 +66,8 @@ AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Defa
 -- [ 2. PLAYER MOVEMENT & GLITCH EMOTE TAB ] 
 -- =============================================================================
 local GlitchGroupBox = Tabs.Player:AddLeftGroupbox('Math Stationary Glitch Emote')
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
 local glitchConnection = nil
 local keyStates = {W = false, A = false, S = false, D = false}
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.W then keyStates.W = true end
-    if input.KeyCode == Enum.KeyCode.A then keyStates.A = true end
-    if input.KeyCode == Enum.KeyCode.S then keyStates.S = true end
-    if input.KeyCode == Enum.KeyCode.D then keyStates.D = true end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then keyStates.W = false end
-    if input.KeyCode == Enum.KeyCode.A then keyStates.A = false end
-    if input.KeyCode == Enum.KeyCode.S then keyStates.S = false end
-    if input.KeyCode == Enum.KeyCode.D then keyStates.D = false end
-end)
 
 local function ToggleStationaryGlitch(state)
     if glitchConnection then glitchConnection:Disconnect() glitchConnection = nil end
@@ -110,9 +101,6 @@ local function ToggleStationaryGlitch(state)
                 if rShoulder then rShoulder.Transform = CFrame.Angles(math.rad(tick() * 100), math.rad(80), 0) end
             end
         end)
-        Library:Notify('🕺 Static WASD Glitch Enabled!', 3)
-    else
-        Library:Notify('Glitch Stopped', 2)
     end
 end
 
@@ -160,7 +148,6 @@ EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = fa
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('Weather Systems')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('Atmosphere & Environment')
-local Camera = workspace.CurrentCamera
 
 local weatherAnchor = workspace:FindFirstChild("ANLU_WeatherZone")
 if not weatherAnchor then
@@ -220,7 +207,7 @@ AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = 'Atmosphere Density', De
 end)
 
 -- =============================================================================
--- [ 5. MISC TAB ] 
+-- [ 5. MISC TAB (DEVICE SPOOFER & UTILS) ] 
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('Network Packet Overclock')
 WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', Default = false })
@@ -243,51 +230,17 @@ InventoryBox:AddButton('Duplicate Current Weapon x4', function()
     end
 end)
 
--- [ ✨ Skin Case Folder Scanner ]
-local skinCaseFolder = nil
-for _, v in pairs(game:GetDescendants()) do
-    if v:IsA("Folder") and v.Name == "Skin Case" then
-        skinCaseFolder = v
-        break
-    end
-end
-
-local skinNames = {"None"}
-if skinCaseFolder then
-    for _, skin in ipairs(skinCaseFolder:GetChildren()) do
-        if skin:IsA("Model") then
-            table.insert(skinNames, skin.Name)
-        end
-    end
-else
-    table.insert(skinNames, "Skin Case Folder Not Found")
-end
-
-local AutoSkinBox = Tabs.Misc:AddRightGroupbox('Ultimate Skin & Sound Spoofer')
-AutoSkinBox:AddToggle('AutoSkinToggle', { Text = 'Enable Auto Spoofer', Default = false })
-AutoSkinBox:AddDropdown('SkinSelector', { 
-    Values = skinNames, 
-    Default = 1, 
-    Text = 'Select Skin (Mesh + Sound)' 
+-- [ 📱 SYSTEM DEVICE SPOOFER ]
+local SpooferBox = Tabs.Misc:AddRightGroupbox('System Spoofer (기기 위조)')
+SpooferBox:AddToggle('DeviceSpooferToggle', { Text = 'Device Spoofer (기기 속이기)', Default = false })
+SpooferBox:AddDropdown('DeviceMode', { 
+    Values = { 'PC', 'Mobile', 'Console' }, 
+    Default = 2, 
+    Text = '위조할 기기 선택' 
 })
 
--- [ 🌟 Skin-Sound Database ]
-local SkinSoundDatabase = {
-    ["AK-47"] = "13455395017",
-    ["Akey-47"] = "100664516053133", 
-    ["Aces"] = "13087362838",
-    ["Advanced Satchel"] = "13236549929",
-    ["Balloon Shotgun"] = "13236549962",
-    ["Blaster"] = "13158735106",
-    ["Cyber Warpstone"] = "17662574783",
-    ["Disco Ball"] = "90757583550672",
-    ["Electro Rifle"] = "110122962237431",
-    ["Emoji Cloud"] = "96253147006478",
-    ["DefaultFallback"] = "13455394948" 
-}
-
 -- =============================================================================
--- [ 6. BACKEND CORE ENGINE ]
+-- [ 6. BACKEND CORE ENGINE (HOOKS & LOOPS) ]
 -- =============================================================================
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking, isRightMouseDown = false, false
@@ -298,13 +251,39 @@ FOVCircle.Color = Color3.fromRGB(255, 0, 50)
 FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
 
-UserInputService.JumpRequest:Connect(function()
-    if Toggles and Toggles.InfJumpToggle and Toggles.InfJumpToggle.Value and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState("Jumping") end
+-- [ 🌟 METATABLE HOOKING (NAME_CALL & INDEX) ]
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+local oldIndex = mt.__index
+setreadonly(mt, false)
+
+-- __index 후킹: Device Spoofer
+mt.__index = newcclosure(function(self, key)
+    if not checkcaller() and Toggles and Toggles.DeviceSpooferToggle and Toggles.DeviceSpooferToggle.Value then
+        local mode = Options.DeviceMode.Value
+        
+        if self == UserInputService then
+            if mode == "Mobile" then
+                if key == "TouchEnabled" then return true end
+                if key == "KeyboardEnabled" then return false end
+            elseif mode == "Console" then
+                if key == "GamepadEnabled" then return true end
+                if key == "KeyboardEnabled" then return false end
+            elseif mode == "PC" then
+                if key == "KeyboardEnabled" then return true end
+                if key == "TouchEnabled" then return false end
+                if key == "GamepadEnabled" then return false end
+            end
+        elseif self == GuiService then
+            if mode == "Console" and key == "IsTenFootInterface" then
+                return true 
+            end
+        end
     end
+    return oldIndex(self, key)
 end)
 
+-- __namecall 후킹: Silent Aim
 local function getClosestPlayerToMous()
     if not Options or not Options.Radius then return nil end
     local target = nil
@@ -324,245 +303,10 @@ local function getClosestPlayerToMous()
     return target
 end
 
-local function getClosestPlayerToChar()
-    local target = nil
-    local maxDist = math.huge
-    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myHrp then return nil end
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (myHrp.Position - p.Character.HumanoidRootPart.Position).Magnitude
-            if dist < maxDist then maxDist = dist target = p end
-        end
-    end
-    return target
-end
-
--- [ ESP ENGINE ]
-local function createEspDrawings(player)
-    local d = { Box = Drawing.new("Square"), Fill = Drawing.new("Square"), HealthOutline = Drawing.new("Square"), HealthBar = Drawing.new("Square"), Bones = {}, TopGui = Instance.new("BillboardGui"), TopLabel = Instance.new("TextLabel") }
-    d.Box.Thickness = 1.5 d.Box.Filled = false d.Box.Visible = false
-    d.Fill.Filled = true d.Fill.Transparency = 0.35 d.Fill.Visible = false
-    d.HealthOutline.Filled = true d.HealthOutline.Color = Color3.fromRGB(0,0,0) d.HealthOutline.Visible = false
-    d.HealthBar.Filled = true d.HealthBar.Visible = false
-    for i = 1, 15 do local l = Drawing.new("Line") l.Thickness = 1.5 l.Visible = false table.insert(d.Bones, l) end
-    d.TopGui.AlwaysOnTop = true d.TopGui.Size = UDim2.new(0, 200, 0, 50) d.TopGui.Name = "ANLU_Top_"..player.Name
-    d.TopLabel.Size = UDim2.new(1,0,1,0) d.TopLabel.BackgroundTransparency = 1 d.TopLabel.Font = Enum.Font.GothamBold d.TopLabel.TextSize = 14 d.TopLabel.TextStrokeTransparency = 0 d.TopLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0) d.TopLabel.Parent = d.TopGui
-    d.TopGui.Parent = CoreGui
-    return d
-end
-
-local function drawBoneLine(line, p1, p2)
-    if p1 and p2 then
-        local pos1, on1 = Camera:WorldToViewportPoint(p1.Position)
-        local pos2, on2 = Camera:WorldToViewportPoint(p2.Position)
-        if on1 and on2 then line.From = Vector2.new(pos1.X, pos1.Y) line.To = Vector2.new(pos2.X, pos2.Y) return true end
-    end
-    return false
-end
-
-local function updateEsp()
-    if not Toggles or not Options then return end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-        local d = espCache[player]
-        if not d then d = createEspDrawings(player) espCache[player] = d end
-
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local head = char and char:FindFirstChild("Head")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-        if hrp and head and hum and hum.Health > 0 then
-            local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-            if onScreen then
-                local top, topOn = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.8, 0))
-                local bot, botOn = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
-                
-                if topOn and botOn then
-                    local sizeY = math.abs(top.Y - bot.Y)
-                    local sizeX = sizeY * 0.65
-                    local boxPos = Vector2.new(top.X - (sizeX / 2), top.Y)
-
-                    d.Box.Size = Vector2.new(sizeX, sizeY) d.Box.Position = boxPos d.Box.Color = Options.BoxColor.Value d.Box.Visible = Toggles.EspBox.Value
-                    d.Fill.Size = Vector2.new(sizeX, sizeY) d.Fill.Position = boxPos d.Fill.Color = Options.FillColor.Value d.Fill.Visible = Toggles.EspFill.Value
-                    
-                    if Toggles.EspHealthBar.Value then
-                        local pct = hum.Health / hum.MaxHealth
-                        d.HealthOutline.Size = Vector2.new(3, sizeY) d.HealthOutline.Position = Vector2.new(boxPos.X - 6, boxPos.Y) d.HealthOutline.Visible = true
-                        d.HealthBar.Size = Vector2.new(3, sizeY * pct) d.HealthBar.Position = Vector2.new(boxPos.X - 6, boxPos.Y + (sizeY - (sizeY * pct))) d.HealthBar.Color = Options.HealthBarColor.Value d.HealthBar.Visible = true
-                    else d.HealthOutline.Visible = false d.HealthBar.Visible = false end
-
-                    if Toggles.EspSkeleton.Value then
-                        local bc = Options.SkeletonColor.Value
-                        for _, l in ipairs(d.Bones) do l.Color = bc l.Visible = false end
-                        local p = { Head=head, Torso=char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"), LeftArm=char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm"), RightArm=char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm"), LeftForearm=char:FindFirstChild("LeftLowerArm"), RightForearm=char:FindFirstChild("RightLowerArm"), LeftHand=char:FindFirstChild("LeftHand"), RightHand=char:FindFirstChild("RightHand"), LowerTorso=char:FindFirstChild("LowerTorso"), LeftThigh=char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"), RightThigh=char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg"), LeftCalf=char:FindFirstChild("LeftLowerLeg"), RightCalf=char:FindFirstChild("RightLowerLeg"), LeftFoot=char:FindFirstChild("LeftFoot"), RightFoot=char:FindFirstChild("RightFoot") }
-                        local idx = 1
-                        local function conn(p1, p2) if drawBoneLine(d.Bones[idx], p1, p2) then d.Bones[idx].Visible = true idx = idx + 1 end end
-                        conn(p.Head, p.Torso) if p.LowerTorso then conn(p.Torso, p.LowerTorso) end
-                        conn(p.Torso, p.LeftArm) if p.LeftForearm then conn(p.LeftArm, p.LeftForearm) conn(p.LeftForearm, p.LeftHand) end
-                        conn(p.Torso, p.RightArm) if p.RightForearm then conn(p.RightArm, p.RightForearm) conn(p.RightForearm, p.RightHand) end
-                        local hip = p.LowerTorso or p.Torso
-                        conn(hip, p.LeftThigh) if p.LeftCalf then conn(p.LeftThigh, p.LeftCalf) conn(p.LeftCalf, p.LeftFoot) end
-                        conn(hip, p.RightThigh) if p.RightCalf then conn(p.RightThigh, p.RightCalf) conn(p.RightCalf, p.RightFoot) end
-                    else for _, l in ipairs(d.Bones) do l.Visible = false end end
-
-                    if Toggles.EspName.Value or Toggles.EspDistance.Value then
-                        d.TopGui.Adornee = head
-                        local str = ""
-                        if Toggles.EspName.Value then str = player.DisplayName d.TopLabel.TextColor3 = Options.NameColor.Value end
-                        if Toggles.EspDistance.Value then 
-                            local dist = math.floor((hrp.Position - Camera.CFrame.Position).Magnitude)
-                            str = str ~= "" and str.."\n["..dist.."m]" or "["..dist.."m]"
-                            if not Toggles.EspName.Value then d.TopLabel.TextColor3 = Options.DistanceColor.Value end
-                        end
-                        d.TopLabel.Text = str d.TopGui.Enabled = true
-                    else d.TopGui.Enabled = false end
-                else
-                    d.Box.Visible=false d.Fill.Visible=false d.HealthOutline.Visible=false d.HealthBar.Visible=false d.TopGui.Enabled=false
-                    for _, l in ipairs(d.Bones) do l.Visible=false end
-                end
-            else
-                d.Box.Visible=false d.Fill.Visible=false d.HealthOutline.Visible=false d.HealthBar.Visible=false d.TopGui.Enabled=false
-                for _, l in ipairs(d.Bones) do l.Visible=false end
-            end
-        else
-            d.Box.Visible=false d.Fill.Visible=false d.HealthOutline.Visible=false d.HealthBar.Visible=false d.TopGui.Enabled=false
-            for _, l in ipairs(d.Bones) do l.Visible=false end
-        end
-    end
-end
-
--- [ NOCLIP SYSTEM ]
-RunService.Stepped:Connect(function()
-    if Toggles and Toggles.NoclipToggle and Toggles.NoclipToggle.Value and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- [ FLY & MOVEMENT SYSTEM ]
-local FlyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftControl = false}
-local autoStrafeSide = 1
-local lastAutoStrafe = tick()
-
-local function updateFly()
-    if not Toggles or not Options then return end
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if Toggles.FlyToggle and Toggles.FlyToggle.Value and hrp then
-        local camCFrame = Camera.CFrame
-        local moveDir = Vector3.new(0, 0, 0)
-
-        if FlyKeys.W then moveDir = moveDir + camCFrame.LookVector end
-        if FlyKeys.S then moveDir = moveDir - camCFrame.LookVector end
-        if FlyKeys.A then moveDir = moveDir - camCFrame.RightVector end
-        if FlyKeys.D then moveDir = moveDir + camCFrame.RightVector end
-        if FlyKeys.Space then moveDir = moveDir + Vector3.new(0, 1, 0) end
-        if FlyKeys.LeftControl then moveDir = moveDir - Vector3.new(0, 1, 0) end
-
-        if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
-
-        local bv = hrp:FindFirstChild("ANLU_Fly")
-        if not bv then
-            bv = Instance.new("BodyVelocity")
-            bv.Name = "ANLU_Fly"
-            bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bv.Parent = hrp
-        end
-        bv.Velocity = moveDir * Options.FlySpeed.Value
-
-        if not Toggles.AntiAimToggle.Value and not Toggles.GlitchDanceToggle.Value then
-            local bg = hrp:FindFirstChild("ANLU_FlyGyro")
-            if not bg then
-                bg = Instance.new("BodyGyro")
-                bg.Name = "ANLU_FlyGyro"
-                bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-                bg.P = 10000
-                bg.Parent = hrp
-            end
-            bg.CFrame = CFrame.new(hrp.Position, hrp.Position + camCFrame.LookVector * 100)
-        else
-            if hrp:FindFirstChild("ANLU_FlyGyro") then hrp.ANLU_FlyGyro:Destroy() end
-        end
-    else
-        if hrp then
-            if hrp:FindFirstChild("ANLU_Fly") then hrp.ANLU_Fly:Destroy() end
-            if hrp:FindFirstChild("ANLU_FlyGyro") then hrp.ANLU_FlyGyro:Destroy() end
-        end
-    end
-end
-
-local function updateMovement(dt)
-    if not Toggles or not Options then return end
-    if Toggles.GlitchDanceToggle and Toggles.GlitchDanceToggle.Value then return end
-    if Toggles.FlyToggle and Toggles.FlyToggle.Value then return end 
-
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local strafe, orbit, void, antiaim = Toggles.StrafeToggle.Value, Toggles.OrbitToggle.Value, Toggles.VoidSpamToggle.Value, Toggles.AntiAimToggle.Value
-    if not strafe and not orbit and not void and not antiaim then 
-        if Toggles.AutoStrafeToggle and Toggles.AutoStrafeToggle.Value then
-            if tick() - lastAutoStrafe > 0.15 then
-                autoStrafeSide = autoStrafeSide * -1
-                lastAutoStrafe = tick()
-            end
-            hrp.CFrame = hrp.CFrame + (hrp.CFrame.RightVector * (autoStrafeSide * Options.AutoStrafeSpeed.Value * dt))
-        end
-        return 
-    end
-
-    local targetPlayer = Options.MovementTargetMode.Value == 'Closest Player' and getClosestPlayerToChar() or Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
-    local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHeadPos = targetHrp and (targetHrp.Position + Vector3.new(0, Options.TeleportHeight.Value, 0)) or nil
-
-    if strafe and targetHeadPos then
-        local now, cycle = tick(), Options.StrafeDuration.Value
-        if now - lastStrafeTime > (cycle * 2) then lastStrafeTime = now end
-        lastNormalCFrame = (now - lastStrafeTime < cycle) and CFrame.lookAt(targetHeadPos, Vector3.new(targetHrp.Position.X, targetHeadPos.Y, targetHrp.Position.Z)) or hrp.CFrame
-    elseif orbit then
-        local center = Options.OrbitTargetMode.Value == 'Map Center (0,0,0)' and Vector3.new(0,0,0) or (targetHrp and targetHrp.Position or hrp.Position)
-        angle = angle + (Options.OrbitSpeed.Value * dt)
-        lastNormalCFrame = CFrame.lookAt(Vector3.new(center.X + math.cos(angle)*Options.OrbitRadius.Value, center.Y + Options.OrbitHeight.Value, center.Z + math.sin(angle)*Options.OrbitRadius.Value), center)
-    else
-        lastNormalCFrame = hrp.CFrame
-    end
-
-    if antiaim and lastNormalCFrame then
-        antiAimAngle = antiAimAngle + (Options.AntiAimSpeed.Value * dt)
-        local m, aa = Options.AntiAimMode.Value, CFrame.Identity
-        if m == 'Hyper Spinbot' then aa = CFrame.Angles(0, antiAimAngle, 0)
-        elseif m == 'Backwards' then aa = CFrame.Angles(0, math.rad(180), 0)
-        elseif m == 'Matrix Break' then aa = CFrame.Angles(math.rad(math.random(-60,60)), math.rad(math.random(-180,180)), math.rad(math.random(-45,45)))
-        elseif m == 'Pitch Flip' then aa = CFrame.Angles((tick()*30)%2==0 and math.rad(85) or math.rad(-85), antiAimAngle, 0)
-        elseif m == 'Fake Jitter' then aa = CFrame.Angles(0, math.rad(180) + ((tick()*40)%2==0 and math.rad(180) or 0), math.rad(25)) end
-        lastNormalCFrame = CFrame.new(lastNormalCFrame.Position) * lastNormalCFrame.Rotation * aa
-    end
-
-    if lastNormalCFrame then
-        if void then
-            alternateVoid = not alternateVoid
-            hrp.CFrame = alternateVoid and lastNormalCFrame or CFrame.new(lastNormalCFrame.Position.X, Options.VoidSpamDepth.Value, lastNormalCFrame.Position.Z) * lastNormalCFrame.Rotation
-        else hrp.CFrame = lastNormalCFrame end
-        hrp.Velocity, hrp.RotVelocity = Vector3.zero, Vector3.zero
-    end
-end
-
--- [ Namecall Hooks ]
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
+    
     if not checkcaller() and typeof(self) == "Instance" and self.Name == "UseItem" and method == "FireServer" then
         if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
             local targetPlayer = getClosestPlayerToMous()
@@ -586,6 +330,40 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
+-- [ Inputs & Binds ]
+UserInputService.JumpRequest:Connect(function()
+    if Toggles and Toggles.InfJumpToggle and Toggles.InfJumpToggle.Value and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState("Jumping") end
+    end
+end)
+
+local FlyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftControl = false}
+UserInputService.InputBegan:Connect(function(i, g) 
+    if not g then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end 
+        if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end 
+        if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = true keyStates.W = true end
+        if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = true keyStates.A = true end
+        if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = true keyStates.S = true end
+        if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = true keyStates.D = true end
+        if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = true end
+        if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = true end
+    end 
+end)
+
+UserInputService.InputEnded:Connect(function(i, g) 
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end 
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end 
+    if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = false keyStates.W = false end
+    if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = false keyStates.A = false end
+    if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = false keyStates.S = false end
+    if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = false keyStates.D = false end
+    if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = false end
+    if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = false end
+end)
+
+-- [ CORE LOOPS ]
 RunService.RenderStepped:Connect(function(dt)
     if Toggles.ShowFOV.Value then
         FOVCircle.Position = UserInputService:GetMouseLocation()
@@ -596,7 +374,6 @@ RunService.RenderStepped:Connect(function(dt)
     if weatherAnchor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         weatherAnchor.CFrame = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 25, 0))
     end
-    pcall(updateEsp)
     
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
         local targetPlayer = getClosestPlayerToMous()
@@ -604,166 +381,6 @@ RunService.RenderStepped:Connect(function(dt)
             local targetPart = targetPlayer.Character:FindFirstChild(Options.AimbotPart.Value)
             if targetPart then Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPart.Position), math.clamp(dt * (21 - Options.Smoothness.Value), 0, 1)) end
         end
-    end
-
-    -- [ ✨ 궁극의 외형 + DB 사운드 동시 주입 엔진 ]
-    if Toggles and Toggles.AutoSkinToggle and Toggles.AutoSkinToggle.Value and skinCaseFolder then
-        local selectedSkinName = Options.SkinSelector.Value
-        
-        if selectedSkinName ~= "None" and selectedSkinName ~= "Skin Case Folder Not Found" then
-            pcall(function()
-                local targetSkinModel = skinCaseFolder:FindFirstChild(selectedSkinName)
-                if not targetSkinModel then return end
-                
-                -- 1. 선택한 스킨의 3D 외형(MeshId, TextureId) 추출
-                local targetMeshId, targetTextureId
-                for _, obj in ipairs(targetSkinModel:GetDescendants()) do
-                    if obj:IsA("MeshPart") then
-                        targetMeshId = obj.MeshId
-                        targetTextureId = obj.TextureID
-                        break
-                    elseif obj:IsA("SpecialMesh") then
-                        targetMeshId = obj.MeshId
-                        targetTextureId = obj.TextureId
-                        break
-                    end
-                end
-
-                -- 2. DB에서 사운드 ID 매칭
-                local matchedSoundIdNum = SkinSoundDatabase[selectedSkinName] or SkinSoundDatabase["DefaultFallback"]
-                local autoSoundId = "rbxassetid://" .. matchedSoundIdNum
-
-                -- 3. 데이터 주입
-                if targetMeshId then
-                    local char = LocalPlayer.Character
-                    local cam = workspace.CurrentCamera
-                    
-                    local function applySkinCombo(model)
-                        for _, obj in ipairs(model:GetDescendants()) do
-                            if obj:IsA("MeshPart") and not obj.Name:lower():find("arm") and not obj.Name:lower():find("hand") then
-                                if obj.MeshId ~= targetMeshId then obj.MeshId = targetMeshId end
-                                if targetTextureId and obj.TextureID ~= targetTextureId then obj.TextureID = targetTextureId end
-                            elseif obj:IsA("SpecialMesh") then
-                                if obj.MeshId ~= targetMeshId then obj.MeshId = targetMeshId end
-                                if targetTextureId and obj.TextureId ~= targetTextureId then obj.TextureId = targetTextureId end
-                            end
-                            
-                            if obj:IsA("Sound") then
-                                local sName = obj.Name:lower()
-                                if sName:find("fire") or sName:find("shoot") or sName:find("shot") then
-                                    if obj.SoundId ~= autoSoundId then
-                                        obj.SoundId = autoSoundId
-                                    end
-                                end
-                            end
-                        end
-                    end
-
-                    if char then
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if tool then applySkinCombo(tool) end
-                    end
-                    for _, v in ipairs(cam:GetChildren()) do
-                        if v:IsA("Model") and not v.Name:lower():find("arm") then
-                            applySkinCombo(v)
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-RunService.Heartbeat:Connect(function(dt)
-    pcall(updateFly)
-    pcall(updateMovement, dt)
-end)
-
-local UseItemRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes", 5)
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("Replication", 5) end
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("Fighter", 5) end
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("UseItem", 5) end
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking and UseItemRemote then
-            local targetPlayer = getClosestPlayerToMous()
-            local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local customArgs = {
-                [1] = "\207\147", [2] = "\026",
-                [3] = { ["\001"] = {
-                    ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                    ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                    ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                    ["\002"] = targetHrp or workspace
-                }}
-            }
-            for i = 1, math.floor(Options.FireRateMultiplier.Value) do
-                task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
-            end
-        end
-    end
-end)
-
-workspace.DescendantAdded:Connect(function(d) 
-    if Toggles and Toggles.RageBotToggle and Toggles.RageBotToggle.Value and (d.Name:lower():find("bullet") or d.Name:lower():find("projectile") or d:IsA("BasePart")) then
-        if d.Name:lower():find("bullet") or d.Name:lower():find("projectile") then
-            task.spawn(function()
-                pcall(function() d.CanCollide = false if d:IsA("BasePart") then d.Size = d.Size * 3 end end)
-                local connection
-                connection = RunService.RenderStepped:Connect(function()
-                    if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
-                    local tp = getClosestPlayerToMous()
-                    if tp and tp.Character and tp.Character:FindFirstChild("Head") then
-                        local head = tp.Character.Head
-                        local dist = (head.Position - d.Position).Magnitude
-                        local spd = Options.BaseVelocity.Value
-                        if dist < (spd * 0.016) then d.CFrame = CFrame.new(head.Position) else
-                            d.Velocity = (head.Position - d.Position).Unit * spd
-                            d.CFrame = CFrame.lookAt(d.Position, head.Position)
-                        end
-                    end
-                end)
-            end)
-        end
-    end 
-end)
-
-UserInputService.InputBegan:Connect(function(i, g) 
-    if not g then 
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end 
-        if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = true end 
-        if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = true end
-        if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = true end
-        if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = true end
-        if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = true end
-        if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = true end
-        if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = true end
-    end 
-end)
-
-UserInputService.InputEnded:Connect(function(i, g) 
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = false end 
-    if i.UserInputType == Enum.UserInputType.MouseButton2 then isRightMouseDown = false end 
-    if i.KeyCode == Enum.KeyCode.W then FlyKeys.W = false end
-    if i.KeyCode == Enum.KeyCode.A then FlyKeys.A = false end
-    if i.KeyCode == Enum.KeyCode.S then FlyKeys.S = false end
-    if i.KeyCode == Enum.KeyCode.D then FlyKeys.D = false end
-    if i.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = false end
-    if i.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.LeftControl = false end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    if espCache[player] then
-        pcall(function()
-            if espCache[player].Box then espCache[player].Box:Destroy() end
-            if espCache[player].Fill then espCache[player].Fill:Destroy() end
-            if espCache[player].HealthOutline then espCache[player].HealthOutline:Destroy() end
-            if espCache[player].HealthBar then espCache[player].HealthBar:Destroy() end
-            if espCache[player].TopGui then espCache[player].TopGui:Destroy() end
-            if espCache[player].Bones then for _, l in ipairs(espCache[player].Bones) do l:Destroy() end end
-        end)
-        espCache[player] = nil
     end
 end)
 
@@ -780,11 +397,6 @@ MenuGroup:AddButton('Unload Script', function()
         end
         if glitchConnection then glitchConnection:Disconnect() end
         FOVCircle:Destroy() if weatherAnchor then weatherAnchor:Destroy() end
-        for _, d in pairs(espCache) do
-            if d.Box then d.Box:Destroy() end if d.Fill then d.Fill:Destroy() end
-            if d.HealthOutline then d.HealthOutline:Destroy() end if d.HealthBar then d.HealthBar:Destroy() end
-            if d.TopGui then d.TopGui:Destroy() end if d.Bones then for _, l in ipairs(d.Bones) do l:Destroy() end end
-        end
     end)
     Library:Unload() 
 end)
@@ -797,10 +409,6 @@ ExtraBox:AddToggle('ShowWatermark', { Text = 'Show Watermark', Default = true })
     Library:SetWatermarkVisibility(Toggles.ShowWatermark.Value)
 end)
 Library:SetWatermark('ANLU Hub(Rivals) - PRO EDITION')
-
-ExtraBox:AddToggle('ShowKeybinds', { Text = 'Show Active Keybinds', Default = false }):OnChanged(function()
-    Library.KeybindFrame.Visible = Toggles.ShowKeybinds.Value
-end)
 
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
