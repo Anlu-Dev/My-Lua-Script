@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (UI SETTINGS & UTILITIES UPGRADED)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE INTEGRATION)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -239,13 +239,52 @@ InventoryBox:AddButton('Duplicate Current Weapon x4', function()
                 clonedTool.Parent = backpack
             end
             Library:Notify('🔥 Duplicated currently held tool 4 times!', 3)
-        else
-            Library:Notify('❌ Please equip a tool to duplicate first!', 3)
         end
-    else
-        Library:Notify('❌ Backpack not found.', 3)
     end
 end)
+
+-- [ ✨ Skin Case Folder Scanner ]
+local skinCaseFolder = nil
+for _, v in pairs(game:GetDescendants()) do
+    if v:IsA("Folder") and v.Name == "Skin Case" then
+        skinCaseFolder = v
+        break
+    end
+end
+
+local skinNames = {"None"}
+if skinCaseFolder then
+    for _, skin in ipairs(skinCaseFolder:GetChildren()) do
+        if skin:IsA("Model") then
+            table.insert(skinNames, skin.Name)
+        end
+    end
+else
+    table.insert(skinNames, "Skin Case Folder Not Found")
+end
+
+local AutoSkinBox = Tabs.Misc:AddRightGroupbox('Ultimate Skin & Sound Spoofer')
+AutoSkinBox:AddToggle('AutoSkinToggle', { Text = 'Enable Auto Spoofer', Default = false })
+AutoSkinBox:AddDropdown('SkinSelector', { 
+    Values = skinNames, 
+    Default = 1, 
+    Text = 'Select Skin (Mesh + Sound)' 
+})
+
+-- [ 🌟 Skin-Sound Database ]
+local SkinSoundDatabase = {
+    ["AK-47"] = "13455395017",
+    ["Akey-47"] = "100664516053133", 
+    ["Aces"] = "13087362838",
+    ["Advanced Satchel"] = "13236549929",
+    ["Balloon Shotgun"] = "13236549962",
+    ["Blaster"] = "13158735106",
+    ["Cyber Warpstone"] = "17662574783",
+    ["Disco Ball"] = "90757583550672",
+    ["Electro Rifle"] = "110122962237431",
+    ["Emoji Cloud"] = "96253147006478",
+    ["DefaultFallback"] = "13455394948" 
+}
 
 -- =============================================================================
 -- [ 6. BACKEND CORE ENGINE ]
@@ -566,6 +605,73 @@ RunService.RenderStepped:Connect(function(dt)
             if targetPart then Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPart.Position), math.clamp(dt * (21 - Options.Smoothness.Value), 0, 1)) end
         end
     end
+
+    -- [ ✨ 궁극의 외형 + DB 사운드 동시 주입 엔진 ]
+    if Toggles and Toggles.AutoSkinToggle and Toggles.AutoSkinToggle.Value and skinCaseFolder then
+        local selectedSkinName = Options.SkinSelector.Value
+        
+        if selectedSkinName ~= "None" and selectedSkinName ~= "Skin Case Folder Not Found" then
+            pcall(function()
+                local targetSkinModel = skinCaseFolder:FindFirstChild(selectedSkinName)
+                if not targetSkinModel then return end
+                
+                -- 1. 선택한 스킨의 3D 외형(MeshId, TextureId) 추출
+                local targetMeshId, targetTextureId
+                for _, obj in ipairs(targetSkinModel:GetDescendants()) do
+                    if obj:IsA("MeshPart") then
+                        targetMeshId = obj.MeshId
+                        targetTextureId = obj.TextureID
+                        break
+                    elseif obj:IsA("SpecialMesh") then
+                        targetMeshId = obj.MeshId
+                        targetTextureId = obj.TextureId
+                        break
+                    end
+                end
+
+                -- 2. DB에서 사운드 ID 매칭
+                local matchedSoundIdNum = SkinSoundDatabase[selectedSkinName] or SkinSoundDatabase["DefaultFallback"]
+                local autoSoundId = "rbxassetid://" .. matchedSoundIdNum
+
+                -- 3. 데이터 주입
+                if targetMeshId then
+                    local char = LocalPlayer.Character
+                    local cam = workspace.CurrentCamera
+                    
+                    local function applySkinCombo(model)
+                        for _, obj in ipairs(model:GetDescendants()) do
+                            if obj:IsA("MeshPart") and not obj.Name:lower():find("arm") and not obj.Name:lower():find("hand") then
+                                if obj.MeshId ~= targetMeshId then obj.MeshId = targetMeshId end
+                                if targetTextureId and obj.TextureID ~= targetTextureId then obj.TextureID = targetTextureId end
+                            elseif obj:IsA("SpecialMesh") then
+                                if obj.MeshId ~= targetMeshId then obj.MeshId = targetMeshId end
+                                if targetTextureId and obj.TextureId ~= targetTextureId then obj.TextureId = targetTextureId end
+                            end
+                            
+                            if obj:IsA("Sound") then
+                                local sName = obj.Name:lower()
+                                if sName:find("fire") or sName:find("shoot") or sName:find("shot") then
+                                    if obj.SoundId ~= autoSoundId then
+                                        obj.SoundId = autoSoundId
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if char then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then applySkinCombo(tool) end
+                    end
+                    for _, v in ipairs(cam:GetChildren()) do
+                        if v:IsA("Model") and not v.Name:lower():find("arm") then
+                            applySkinCombo(v)
+                        end
+                    end
+                end
+            end)
+        end
+    end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
@@ -662,7 +768,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- =============================================================================
--- [ 7. UI SETTINGS & MANAGERS ] (Here is the Massive Upgrade!)
+-- [ 7. UI SETTINGS & MANAGERS ]
 -- =============================================================================
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu Options')
 MenuGroup:AddButton('Unload Script', function() 
@@ -696,7 +802,6 @@ ExtraBox:AddToggle('ShowKeybinds', { Text = 'Show Active Keybinds', Default = fa
     Library.KeybindFrame.Visible = Toggles.ShowKeybinds.Value
 end)
 
--- Properly initializing the Managers so the UI Settings tab fills up completely
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
