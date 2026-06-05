@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE KOREAN INTEGRATION)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE KOREAN INTEGRATION & FULL RESTORE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -14,6 +14,7 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.1
 })
 
+-- [ 완벽 복구된 탭 메뉴들 ]
 local Tabs = {
     Main = Window:AddTab('메인(전투)'),
     Player = Window:AddTab('플레이어(무빙)'),
@@ -54,7 +55,7 @@ AntiAimGroupBox:AddDropdown('AntiAimMode', {
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = '회전/글리치 속도', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
 -- =============================================================================
--- [ 2. PLAYER MOVEMENT & CFRAME EMOTE TAB ] 
+-- [ 2. PLAYER MOVEMENT & GLITCH EMOTE TAB ] 
 -- =============================================================================
 local GlitchGroupBox = Tabs.Player:AddLeftGroupbox('시점 고정 WASD 글리치 댄스')
 local RunService = game:GetService("RunService")
@@ -128,7 +129,7 @@ UtilsGroupBox:AddSlider('AutoStrafeSpeed', { Text = '회피 속도', Default = 3
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('보이드 텔레포트')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = '보이드 깊이 (Y축)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
-VoidGroupBox:AddToggle('VoidSpamToggle', { Text = '보이드 스팸 켜기', Default = false })
+VoidGroupBox:AddToggle('VoidSpamToggle', { Text = '보이드 스팸 켜기 (안티 히트박스)', Default = false })
 
 local PlayerBox = Tabs.Player:AddRightGroupbox('고급 무빙 조작')
 PlayerBox:AddToggle('StrafeToggle', { Text = '타겟 주위 돌기 켜기', Default = false })
@@ -156,7 +157,7 @@ EspGroupBox:AddToggle('EspDistance', { Text = '거리 표시 (Distance)', Defaul
 EspGroupBox:AddToggle('EspHealthBar', { Text = '체력바 표시 (Health)', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
 
 -- =============================================================================
--- [ 4. WORLD EFFECTS TAB ]
+-- [ 4. WORLD EFFECTS TAB ] (복구 완료!)
 -- =============================================================================
 local WeatherGroupBox = Tabs.World:AddLeftGroupbox('날씨 시스템 조작')
 local AmbientGroupBox = Tabs.World:AddRightGroupbox('대기 및 환경')
@@ -220,7 +221,7 @@ AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = '안개(대기) 밀도',
 end)
 
 -- =============================================================================
--- [ 5. MISC TAB ]
+-- [ 5. MISC TAB ] (무기 복사 포함)
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('무기 설정 (오버클럭)')
 WeaponModBox:AddToggle('FastFireToggle', { Text = '초고속 연사 켜기', Default = false })
@@ -301,7 +302,7 @@ local function getClosestPlayerToChar()
     return target
 end
 
--- [ ESP 엔진 ]
+-- [ ESP ENGINE ]
 local function createEspDrawings(player)
     local d = { Box = Drawing.new("Square"), Fill = Drawing.new("Square"), HealthOutline = Drawing.new("Square"), HealthBar = Drawing.new("Square"), Bones = {}, TopGui = Instance.new("BillboardGui"), TopLabel = Instance.new("TextLabel") }
     d.Box.Thickness = 1.5 d.Box.Filled = false d.Box.Visible = false
