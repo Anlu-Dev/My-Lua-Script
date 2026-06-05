@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (FLY SPEED MAX 100,000)
+-- ANLU Hub(Rivals) - PRO EDITION (NOCLIP & AUTO STRAFE ADDED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -93,9 +93,12 @@ EmoteGroupBox:AddToggle('CFrameDanceToggle', { Text = 'Enable Crazy Levitation D
 
 local UtilsGroupBox = Tabs.Player:AddLeftGroupbox('Player Utilities')
 UtilsGroupBox:AddToggle('InfJumpToggle', { Text = 'Infinite Jump Enabled', Default = false })
--- [변경점] Fly 속도의 Max 값을 100000으로 수정했습니다!
 UtilsGroupBox:AddToggle('FlyToggle', { Text = 'Enable Fly (Flight)', Default = false }):AddKeyPicker('FlyKey', { Default = 'F', SyncToggleState = true, Mode = 'Toggle', Text = 'Fly Toggle' })
 UtilsGroupBox:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 16, Max = 100000, Rounding = 0 })
+-- [추가됨] 노클립과 오토 스트레이프 추가
+UtilsGroupBox:AddToggle('NoclipToggle', { Text = 'Enable Noclip (Walk through walls)', Default = false }):AddKeyPicker('NoclipKey', { Default = 'N', SyncToggleState = true, Mode = 'Toggle', Text = 'Noclip Toggle' })
+UtilsGroupBox:AddToggle('AutoStrafeToggle', { Text = 'Enable Auto Strafe (Evasion)', Default = false })
+UtilsGroupBox:AddSlider('AutoStrafeSpeed', { Text = 'Auto Strafe Power', Default = 30, Min = 10, Max = 200, Rounding = 0 })
 
 local VoidGroupBox = Tabs.Player:AddLeftGroupbox('Void Teleport Settings')
 VoidGroupBox:AddSlider('VoidSpamDepth', { Text = 'Void Depth (Y-Axis)', Default = -1000, Min = -5000, Max = -100, Rounding = 0 })
@@ -347,6 +350,19 @@ local function updateEsp()
 end
 
 -- =============================================================================
+-- [ NOCLIP SYSTEM (Stepped Event) ]
+-- =============================================================================
+RunService.Stepped:Connect(function()
+    if Toggles and Toggles.NoclipToggle and Toggles.NoclipToggle.Value and LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- =============================================================================
 -- [ FLY SYSTEM & KEY INPUTS ]
 -- =============================================================================
 local FlyKeys = {W = false, A = false, S = false, D = false, Space = false, LeftControl = false}
@@ -399,6 +415,9 @@ local function updateFly()
     end
 end
 
+local autoStrafeSide = 1
+local lastAutoStrafe = tick()
+
 local function updateMovement(dt)
     if not Toggles or not Options then return end
     if Toggles.CFrameDanceToggle and Toggles.CFrameDanceToggle.Value then return end
@@ -409,7 +428,18 @@ local function updateMovement(dt)
     if not hrp then return end
 
     local strafe, orbit, void, antiaim = Toggles.StrafeToggle.Value, Toggles.OrbitToggle.Value, Toggles.VoidSpamToggle.Value, Toggles.AntiAimToggle.Value
-    if not strafe and not orbit and not void and not antiaim then return end
+    if not strafe and not orbit and not void and not antiaim then 
+        -- [추가됨] 아무 무빙 기능도 안 켰을 때, Auto Strafe가 켜져 있으면 좌우 회피 기동 실행
+        if Toggles.AutoStrafeToggle and Toggles.AutoStrafeToggle.Value then
+            if tick() - lastAutoStrafe > 0.15 then
+                autoStrafeSide = autoStrafeSide * -1
+                lastAutoStrafe = tick()
+            end
+            -- 좌우로 CFrame 강제 이동 (회피 기동)
+            hrp.CFrame = hrp.CFrame + (hrp.CFrame.RightVector * (autoStrafeSide * Options.AutoStrafeSpeed.Value * dt))
+        end
+        return 
+    end
 
     local targetPlayer = Options.MovementTargetMode.Value == 'Closest Player' and getClosestPlayerToChar() or Players:FindFirstChild(Options.OrbitTargetPlayer.Value or "")
     local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
