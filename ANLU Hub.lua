@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL OPTIMIZED)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -42,7 +42,7 @@ FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
 
 -- =============================================================================
--- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION ]
+-- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION (LAG-FREE OPTIMIZED) ]
 -- =============================================================================
 _G.UnlockAllActive = false
 _G.AxiomEquipped = {}
@@ -64,24 +64,23 @@ local function InitUnlockAll()
     _G.DataController = require(controllers:WaitForChild("PlayerDataController", 10))
     pcall(function() _G.FighterController = require(controllers:WaitForChild("FighterController", 10)) end)
 
-    -- // 1. OWNERSHIP SPOOF (모든 아이템 소유권 강제 획득)
+    -- // 1. OWNERSHIP SPOOF 
     _G.CosmeticLibrary.OwnsCosmeticNormally = function() return true end
     _G.CosmeticLibrary.OwnsCosmeticUniversally = function() return true end
     _G.CosmeticLibrary.OwnsCosmeticForWeapon = function() return true end
 
     local origOwns = _G.CosmeticLibrary.OwnsCosmetic
     _G.CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end
+        if type(name) == "string" and name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end
         return true
     end
 
-    -- // 2. DATA CONTROLLER HOOKS (인벤토리 데이터 조작)
+    -- // 2. DATA CONTROLLER HOOKS (최적화 완료: table.clone 사용)
     local origGet = _G.DataController.Get
     _G.DataController.Get = function(self, key)
         local data = origGet(self, key)
         if key == "CosmeticInventory" then
-            local proxy = {}
-            if data then for k, v in pairs(data) do proxy[k] = v end end
+            local proxy = data and table.clone(data) or {}
             return setmetatable(proxy, { __index = function() return true end })
         end
         if key == "FavoritedCosmetics" then
@@ -99,18 +98,18 @@ local function InitUnlockAll()
     _G.DataController.GetWeaponData = function(self, weaponName)
         local data = origGetWeaponData(self, weaponName)
         if not data then return nil end
-        local merged = {}
-        for k, v in pairs(data) do merged[k] = v end
-        merged.Name = weaponName
         if _G.AxiomEquipped[weaponName] then
+            local merged = table.clone(data)
+            merged.Name = weaponName
             for cType, cData in pairs(_G.AxiomEquipped[weaponName]) do
                 merged[cType] = cData
             end
+            return merged
         end
-        return merged
+        return data
     end
 
-    -- // 3. VIEWMODEL HOOKS (인게임 총기 외형 변경)
+    -- // 3. VIEWMODEL HOOKS
     local ClientItem
     pcall(function() ClientItem = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem) end)
 
@@ -170,13 +169,13 @@ local function InitUnlockAll()
             local result = origNew(replicatedData, clientItem)
             if weaponPlayer == LocalPlayer and _G.AxiomEquipped[weaponName] and _G.AxiomEquipped[weaponName].Wrap and result._UpdateWrap then
                 result:_UpdateWrap()
-                task.delay(0.1, function() if not result._destroyed then result:_UpdateWrap() end end)
+                task.delay(0.1, function() pcall(function() if not result._destroyed then result:_UpdateWrap() end end) end)
             end
             return result
         end
     end
 
-    -- // 4. ITEM LIBRARY IMAGE FIX (UI 썸네일 변경)
+    -- // 4. ITEM LIBRARY IMAGE FIX
     local origGetVMImage = _G.ItemLibrary.GetViewModelImageFromWeaponData
     _G.ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
         if not weaponData then return origGetVMImage(self, weaponData, highRes) end
@@ -206,7 +205,7 @@ local function InitUnlockAll()
         end
     end)
 
-    -- // 6. FINISHER FIX (피니셔 이펙트 변경)
+    -- // 6. FINISHER FIX
     local ClientEntity
     pcall(function() ClientEntity = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientEntity) end)
     if ClientEntity and ClientEntity.ReplicateFromServer then
@@ -715,9 +714,10 @@ mt.__namecall = newcclosure(function(self, ...)
     local args = {...}
     
     if not checkcaller() and method == "FireServer" then
+        local selfName = self.Name
         
         -- [ UseItem: Silent Aim & Last Weapon Tracker ]
-        if typeof(self) == "Instance" and self.Name == "UseItem" then
+        if selfName == "UseItem" then
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
                 local targetPlayer = getClosestPlayerToMous()
                 if targetPlayer and targetPlayer.Character then
@@ -755,7 +755,7 @@ mt.__namecall = newcclosure(function(self, ...)
         end
 
         -- [ EquipCosmetic: Block Server Packet & Fake Equip ]
-        if typeof(self) == "Instance" and self.Name == "EquipCosmetic" and _G.UnlockAllActive then
+        if selfName == "EquipCosmetic" and _G.UnlockAllActive then
             local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
             
             if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
@@ -802,7 +802,7 @@ mt.__namecall = newcclosure(function(self, ...)
         end
 
         -- [ FavoriteCosmetic: Block Server Packet ]
-        if typeof(self) == "Instance" and self.Name == "FavoriteCosmetic" and _G.UnlockAllActive then
+        if selfName == "FavoriteCosmetic" and _G.UnlockAllActive then
             _G.AxiomFavorites[args[1]] = _G.AxiomFavorites[args[1]] or {}
             _G.AxiomFavorites[args[1]][args[2]] = args[3] or nil
             if _G.DataController then
@@ -868,27 +868,30 @@ task.spawn(function()
     end
 end)
 
+-- [ 🌟 최적화된 DescendantAdded 이벤트 (프레임 드랍 픽스) ]
 workspace.DescendantAdded:Connect(function(d) 
-    if Toggles and Toggles.RageBotToggle and Toggles.RageBotToggle.Value and (d.Name:lower():find("bullet") or d.Name:lower():find("projectile") or d:IsA("BasePart")) then
-        if d.Name:lower():find("bullet") or d.Name:lower():find("projectile") then
-            task.spawn(function()
-                pcall(function() d.CanCollide = false if d:IsA("BasePart") then d.Size = d.Size * 3 end end)
-                local connection
-                connection = RunService.RenderStepped:Connect(function()
-                    if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
-                    local tp = getClosestPlayerToMous()
-                    if tp and tp.Character and tp.Character:FindFirstChild("Head") then
-                        local head = tp.Character.Head
-                        local dist = (head.Position - d.Position).Magnitude
-                        local spd = Options.BaseVelocity.Value
-                        if dist < (spd * 0.016) then d.CFrame = CFrame.new(head.Position) else
-                            d.Velocity = (head.Position - d.Position).Unit * spd
-                            d.CFrame = CFrame.lookAt(d.Position, head.Position)
-                        end
+    if not Toggles or not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then return end
+    if not d:IsA("BasePart") then return end
+    
+    local name = d.Name:lower()
+    if name:find("bullet") or name:find("projectile") then
+        task.spawn(function()
+            pcall(function() d.CanCollide = false d.Size = d.Size * 3 end)
+            local connection
+            connection = RunService.RenderStepped:Connect(function()
+                if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
+                local tp = getClosestPlayerToMous()
+                if tp and tp.Character and tp.Character:FindFirstChild("Head") then
+                    local head = tp.Character.Head
+                    local dist = (head.Position - d.Position).Magnitude
+                    local spd = Options.BaseVelocity.Value
+                    if dist < (spd * 0.016) then d.CFrame = CFrame.new(head.Position) else
+                        d.Velocity = (head.Position - d.Position).Unit * spd
+                        d.CFrame = CFrame.lookAt(d.Position, head.Position)
                     end
-                end)
+                end
             end)
-        end
+        end)
     end 
 end)
 
