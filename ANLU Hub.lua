@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + REMOTE SPOOFER)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + BUILT-IN SKIN CHANGER)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -28,6 +28,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -39,6 +40,333 @@ local FOVCircle = Drawing.new("Circle")
 FOVCircle.Color = Color3.fromRGB(255, 0, 50)
 FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
+
+-- =============================================================================
+-- [ 🌟 SKIN CHANGER DATA & CORE INITIALIZATION ]
+-- =============================================================================
+local SkinLists = {
+    ["Assault Rifle"] = {"Default", "AK-47", "AUG", "Tommy Gun", "Boneclaw Rifle", "Gingerbread AUG", "AKEY-47", "100K Visits", "10 Billion Visits", "Phoenix Rifle"},
+    ["Bow"] = {"Default", "Compound Bow", "Raven Bow", "Dream Bow", "Bat Bow", "Frostbite Bow", "Beloved Bow", "Balloon Bow", "Glorious Bow", "Key Bow", "Arch Bow"},
+    ["Burst Rifle"] = {"Default", "Electro Burst", "Aqua Burst", "FAMAS", "Spectral Burst", "Pine Burst"},
+    ["Crossbow"] = {"Default", "Pixel Crossbow", "Harpoon Crossbow", "Violin Crossbow", "Crossbone", "Frostbite Crossbow", "Arch Crossbow", "Glorious Crossbow"},
+    ["Distortion"] = {"Default", "Plasma Distortion", "Magma Distortion", "Cyber Distortion", "Expirement D15", "Sleighstortion"},
+    ["Energy Rifle"] = {"Default", "Hacker Rifle", "Hydro Rifle", "Void Rifle", "Soul Rifle", "New Years Energy Rifle"},
+    ["Flamethrower"] = {"Default", "Pixel Flamethrower", "Lamethrower", "Glitterthrower", "Jack O' Thrower", "Snowblower", "Keythrower", "Rainbowthrower"},
+    ["Grenade Launcher"] = {"Default", "Swashbuckler", "Uranium Launcher", "Gearnade Launcher", "Skull Grenade Launcher", "Snowball Launcher"},
+    ["Gunblade"] = {"Default", "Hyper Gunblade", "Crude Gunblade", "Gunsaw", "Boneblade", "Elf's Gunblade"},
+    ["Minigun"] = {"Default", "Lasergun 3000", "Pixel Minigun", "Fighter Jet", "Pumpkin Minigun", "Wrapped Minigun"},
+    ["Paintball Gun"] = {"Default", "Slime Gun", "Boba Gun", "Ketchup Gun", "Brain Gun", "Snowball Gun"},
+    ["RPG"] = {"Default", "Nuke Launcher", "Spaceship Launcher", "Squid Launcher", "Pumpkin Launcher", "Firework Launcher"},
+    ["Shotgun"] = {"Default", "Balloon Shotgun", "Hyper Shotgun", "Cactus Shotgun", "Broomstick", "Wrapped Shotgun"},
+    ["Sniper"] = {"Default", "Pixel Sniper", "Hyper Sniper", "Event Horizon", "Eyething Sniper", "Gingerbread Sniper", "Keyper", "Glorious Sniper"},
+    ["Daggers"] = {"Default", "Aces", "Paper Planes", "Shurikens", "Bat Daggers", "Cookies", "Crystal Daggers", "Keynais"},
+    ["Energy Pistols"] = {"Default", "Void Pistols", "Hydro Pistols", "Soul Pistols", "New Years Energy Pistols"},
+    ["Exogun"] = {"Default", "Singularity", "Raygun", "Repulsor", "Exogourd", "Midnight Festive Exogun"},
+    ["Flare Gun"] = {"Default", "Firework Gun", "Dynamite Gun", "Banana Flare", "Vexed Flare Gun", "Wrapped Flare Gun"},
+    ["Handgun"] = {"Default", "Blaster", "Hand Gun", "Gumball Handgun", "Pumpkin Handgun", "Gingerbread Handgun"},
+    ["Revolver"] = {"Default", "Desert Eagle", "Sheriff", "Peppergun", "Boneclaw Revolver", "Peppermint Sheriff"},
+    ["Shorty"] = {"Default", "Not So Shorty", "Lovely Shorty", "Balloon Shorty", "Demon Shorty", "Wrapped Shorty"},
+    ["Slingshot"] = {"Default", "Stick", "Goal Post", "Harp", "Boneshot", "Reindeer Slingshot", "Lucky Horseshoe"},
+    ["Spray"] = {"Default", "Lovely Spray", "Nail Gun", "Bottle Spray", "Boneclaw Spray", "Pine Spray", "Key Spray"},
+    ["Uzi"] = {"Default", "Water Uzi", "Electro Uzi", "Money Gun", "Demon Uzi", "Pine Uzi"},
+    ["Warper"] = {"Default", "Glitter Warper", "Arcane Warper", "Hotel Bell", "Experiment W4", "Frost Warper"},
+    ["Battle Axe"] = {"Default", "The Shred", "Ban Axe", "Cerulean Axe", "Mimic Axe", "Nordic Axe"},
+    ["Chainsaw"] = {"Default", "Blobsaw", "Handsaws", "Mega Drill", "Buzzsaw", "Festive Buzzsaw"},
+    ["Fists"] = {"Default", "Boxing Gloves", "Brass Knuckles", "Fists Of Hurt", "Pumpkin Claws", "Festive Fists"},
+    ["Katana"] = {"Default", "Saber", "Lightning Bolt", "Stellar Katana", "Evil Trident", "New Years Katana", "Keytana", "Arch Katana", "Crystal Katana", "Pixel Katana", "Glorious Katana"},
+    ["Knife"] = {"Default", "Chancla", "Karambit", "Balisong", "Machete", "Candy Cane", "Keylisong", "Keyrambit", "Caladbolg"},
+    ["Riot Shield"] = {"Default", "Door", "Energy Shield", "Masterpiece", "Tombstone Shield", "Sled"},
+    ["Scythe"] = {"Default", "Scythe of Death", "Anchor", "Sakura Scythe", "Bat Scythe", "Cryo Scythe", "Crystal Scythe", "Keythe", "Bug Net", "Arch Scythe"},
+    ["Trowel"] = {"Default", "Plastic Shovel", "Garden Shovel", "Paintbrush", "Pumpkin Carver", "Snow Shovel"},
+    ["Flashbang"] = {"Default", "Disco Ball", "Camera", "Lightbulb", "Skullbang", "Shining Star"},
+    ["Freeze Ray"] = {"Default", "Temporal Ray", "Bubble Ray", "Gum Ray", "Spider Ray", "Wrapped Freeze Ray"},
+    ["Grenade"] = {"Default", "Whoopee Cushion", "Water Balloon", "Dynamite", "Soul Grenade", "Jingle Grenade"},
+    ["Jump Pad"] = {"Default", "Trampoline", "Bounce House", "Shady Chicken Sandwich", "Spider Web", "Jolly Man"},
+    ["Medkit"] = {"Default", "Sandwich", "Laptop", "Medkitty", "Bucket of Candy", "Milk & Cookies", "Box of Chocolates", "Briefcase"},
+    ["Molotov"] = {"Default", "Coffee", "Torch", "Lava Lamp", "Vexed Candle", "Hot Coals", "Arch Molotov"},
+    ["Satchel"] = {"Default", "Advanced Satchel", "Notebook Satchel", "Bag O' Money", "Potion Satchel", "Suspicious Gift"},
+    ["Smoke Grenade"] = {"Default", "Emoji Cloud", "Balance", "Hourglass", "Eyeball", "Snowglobe"},
+    ["Subspace Tripmine"] = {"Default", "Don't Press", "Spring", "DIY Tripmine", "Trick or Treat", "Dev In the Box", "Pot O Keys"},
+    ["War Horn"] = {"Default", "Trumpet", "Megaphone", "Air Horn", "Boneclaw Horn", "Mammoth Horn"},
+    ["Warpstone"] = {"Default", "Cyber Warpstone", "Teleport Disc", "Electropunk Warpstone", "Warpbone", "Warpstar"},
+    ["Permafrost"] = {"Default", "Snowman Permafrost", "Ice Permafrost", "Glorious Permafrost"},
+}
+
+_G.EquippedData = _G.EquippedData or {}
+for weapon in pairs(SkinLists) do
+    if not _G.EquippedData[weapon] then
+        _G.EquippedData[weapon] = {Skin = "Default", Wrap = "None"}
+    end
+end
+_G.SkinSpooferActive = false
+_G.LastUsedWeapon = nil
+
+local SkinGuiMaster = nil
+
+local function InitCustomSkinChanger()
+    if SkinGuiMaster then SkinGuiMaster.Enabled = not SkinGuiMaster.Enabled return end
+
+    _G.SkinSpooferActive = true
+    local controllers = LocalPlayer.PlayerScripts:WaitForChild("Controllers", 5)
+    
+    _G.EnumLibrary = require(ReplicatedStorage.Modules:WaitForChild("EnumLibrary"))
+    if _G.EnumLibrary then _G.EnumLibrary:WaitForEnumBuilder() end
+    _G.CosmeticLibrary = require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary"))
+    _G.ItemLibrary = require(ReplicatedStorage.Modules:WaitForChild("ItemLibrary"))
+    _G.DataController = require(controllers:WaitForChild("PlayerDataController"))
+    pcall(function() _G.FighterController = require(controllers:WaitForChild("FighterController")) end)
+    local ReplicatedClass = require(ReplicatedStorage.Modules:WaitForChild("ReplicatedClass"))
+
+    -- Hook Ownership
+    _G.CosmeticLibrary.OwnsCosmeticNormally = function() return true end
+    _G.CosmeticLibrary.OwnsCosmeticUniversally = function() return true end
+    _G.CosmeticLibrary.OwnsCosmeticForWeapon = function() return true end
+    local origOwns = _G.CosmeticLibrary.OwnsCosmetic
+    _G.CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end return true
+    end
+
+    -- Hook Viewmodels
+    local ClientItem = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem)
+    local ClientViewModel = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem.ClientViewModel)
+    
+    local origCreateViewModel = ClientItem._CreateViewModel
+    ClientItem._CreateViewModel = function(self, viewmodelRef)
+        local weaponName = self.Name
+        if self.ClientFighter and self.ClientFighter.Player == LocalPlayer and _G.EquippedData[weaponName] and _G.EquippedData[weaponName].Skin ~= "Default" and viewmodelRef then
+            pcall(function()
+                local skinData = _G.CosmeticLibrary.Cosmetics[_G.EquippedData[weaponName].Skin]
+                if viewmodelRef.Data and skinData then
+                    viewmodelRef.Data.Skin = skinData
+                    viewmodelRef.Data.Name = skinData.Name
+                end
+            end)
+        end
+        return origCreateViewModel(self, viewmodelRef)
+    end
+
+    local origNew = ClientViewModel.new
+    ClientViewModel.new = function(replicatedData, clientItem)
+        pcall(function()
+            if not clientItem then return end
+            local weaponName = clientItem.Name
+            local cf = rawget(clientItem, "ClientFighter") or clientItem.ClientFighter
+            if cf and cf.Player == LocalPlayer and _G.EquippedData[weaponName] and _G.EquippedData[weaponName].Skin ~= "Default" then
+                local selectedSkin = _G.EquippedData[weaponName].Skin
+                local cosData = _G.CosmeticLibrary.Cosmetics[selectedSkin]
+                if cosData then
+                    local dataKey = ReplicatedClass:ToEnum("Data")
+                    local skinKey = ReplicatedClass:ToEnum("Skin")
+                    replicatedData[dataKey] = replicatedData[dataKey] or {}
+                    replicatedData[dataKey][skinKey] = cosData
+                end
+            end
+        end)
+        return origNew(replicatedData, clientItem)
+    end
+
+    local origGetVMImage = _G.ItemLibrary.GetViewModelImageFromWeaponData
+    _G.ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
+        if weaponData and _G.EquippedData[weaponData.Name] and _G.EquippedData[weaponData.Name].Skin ~= "Default" then
+            local skinInfo = self.ViewModels[_G.EquippedData[weaponData.Name].Skin]
+            if skinInfo then return skinInfo[highRes and "ImageHighResolution" or "Image"] or skinInfo.Image end
+        end
+        return origGetVMImage(self, weaponData, highRes)
+    end
+
+    -- Hook Finisher
+    local ClientEntity
+    pcall(function() ClientEntity = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientEntity) end)
+    if ClientEntity and ClientEntity.ReplicateFromServer then
+        local origReplicate = ClientEntity.ReplicateFromServer
+        ClientEntity.ReplicateFromServer = function(self, action, ...)
+            if action == "FinisherEffect" then
+                local args = {...}
+                local killerName = args[3]
+                if type(killerName) == "userdata" and _G.EnumLibrary then pcall(function() killerName = _G.EnumLibrary:FromEnum(killerName) end) end
+                
+                if tostring(killerName):lower() == LocalPlayer.Name:lower() and _G.LastUsedWeapon and _G.EquippedData[_G.LastUsedWeapon] and _G.EquippedData[_G.LastUsedWeapon].Finisher then
+                    local finisherEnum = _G.EquippedData[_G.LastUsedWeapon].Finisher.Enum
+                    if finisherEnum then args[1] = finisherEnum return origReplicate(self, action, unpack(args)) end
+                end
+            end
+            return origReplicate(self, action, ...)
+        end
+    end
+
+    -- Create UI
+    local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Name = "AnihaSkinChanger"
+    SkinGuiMaster = ScreenGui
+
+    local Main = Instance.new("Frame", ScreenGui)
+    Main.Size = UDim2.new(0, 950, 0, 660)
+    Main.Position = UDim2.new(0.5, -475, 0.5, -330)
+    Main.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    Main.BorderSizePixel = 0
+
+    local Title = Instance.new("TextLabel", Main)
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    Title.Text = "ANLU Hub Custom Skin Changer  •  Drag Here"
+    Title.TextColor3 = Color3.fromRGB(255, 80, 80)
+    Title.Font = Enum.Font.GothamBlack
+    Title.TextSize = 22
+    Title.BorderSizePixel = 0
+    Title.Active = true
+
+    local CloseBtn = Instance.new("TextButton", Title)
+    CloseBtn.Size = UDim2.new(0, 50, 1, 0)
+    CloseBtn.Position = UDim2.new(1, -50, 0, 0)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 20
+    CloseBtn.MouseButton1Click:Connect(function() ScreenGui.Enabled = false end)
+
+    local Left = Instance.new("Frame", Main)
+    Left.Size = UDim2.new(0, 280, 1, -60)
+    Left.Position = UDim2.new(0, 15, 0, 60)
+    Left.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+    Left.BorderSizePixel = 0
+
+    local WeaponScroll = Instance.new("ScrollingFrame", Left)
+    WeaponScroll.Size = UDim2.new(1, -20, 1, -20)
+    WeaponScroll.Position = UDim2.new(0, 10, 0, 10)
+    WeaponScroll.BackgroundTransparency = 1
+    WeaponScroll.ScrollBarThickness = 6
+    WeaponScroll.BorderSizePixel = 0
+
+    local WeaponLayout = Instance.new("UIListLayout", WeaponScroll)
+    WeaponLayout.Padding = UDim.new(0, 6)
+    WeaponLayout.SortOrder = Enum.SortOrder.Name
+
+    local Right = Instance.new("Frame", Main)
+    Right.Size = UDim2.new(1, -310, 1, -60)
+    Right.Position = UDim2.new(0, 305, 0, 60)
+    Right.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+    Right.BorderSizePixel = 0
+
+    local SelectedLabel = Instance.new("TextLabel", Right)
+    SelectedLabel.Size = UDim2.new(1, -20, 0, 40)
+    SelectedLabel.Position = UDim2.new(0, 10, 0, 10)
+    SelectedLabel.BackgroundTransparency = 1
+    SelectedLabel.Text = "Select a weapon on the left"
+    SelectedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    SelectedLabel.Font = Enum.Font.GothamBold
+    SelectedLabel.TextSize = 20
+
+    local SkinScroll = Instance.new("ScrollingFrame", Right)
+    SkinScroll.Size = UDim2.new(1, -20, 1, -60)
+    SkinScroll.Position = UDim2.new(0, 10, 0, 60)
+    SkinScroll.BackgroundTransparency = 1
+    SkinScroll.ScrollBarThickness = 8
+    SkinScroll.BorderSizePixel = 0
+
+    local SkinGrid = Instance.new("UIGridLayout", SkinScroll)
+    SkinGrid.CellSize = UDim2.new(0, 130, 0, 155)
+    SkinGrid.CellPadding = UDim2.new(0, 15, 0, 15)
+
+    local function GetThumb(name)
+        pcall(function()
+            if _G.ItemLibrary and _G.ItemLibrary.ViewModels and _G.ItemLibrary.ViewModels[name] then
+                local data = _G.ItemLibrary.ViewModels[name]
+                return data.ImageHighResolution or data.Image or data.Thumbnail
+            end
+            if _G.CosmeticLibrary and _G.CosmeticLibrary.Skins then
+                for _, tbl in pairs(_G.CosmeticLibrary.Skins) do
+                    if tbl[name] then
+                        local data = tbl[name]
+                        return data.ImageHighResolution or data.Image or data.Thumbnail
+                    end
+                end
+            end
+        end)
+        return ""
+    end
+
+    for weapon in pairs(SkinLists) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -10, 0, 52)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+        btn.Text = "   " .. weapon
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.Font = Enum.Font.GothamSemibold
+        btn.TextSize = 16
+        btn.BorderSizePixel = 0
+        btn.Parent = WeaponScroll
+
+        local img = Instance.new("ImageLabel", btn)
+        img.Size = UDim2.new(0, 40, 0, 40)
+        img.Position = UDim2.new(1, -50, 0.5, -20)
+        img.BackgroundTransparency = 1
+        img.Image = GetThumb(weapon)
+
+        btn.MouseButton1Click:Connect(function()
+            for _, b in pairs(WeaponScroll:GetChildren()) do
+                if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 48) end
+            end
+            btn.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
+            for _, child in pairs(SkinScroll:GetChildren()) do
+                if child:IsA("ImageButton") then child:Destroy() end
+            end
+            SelectedLabel.Text = weapon .. " — Choose a Skin"
+            
+            for _, skin in ipairs(SkinLists[weapon]) do
+                local sbtn = Instance.new("ImageButton")
+                sbtn.BackgroundColor3 = (_G.EquippedData[weapon] and _G.EquippedData[weapon].Skin == skin) and Color3.fromRGB(60, 130, 60) or Color3.fromRGB(35, 35, 42)
+                sbtn.Image = GetThumb(skin)
+                sbtn.BorderSizePixel = 0
+                sbtn.Parent = SkinScroll
+                
+                local lbl = Instance.new("TextLabel", sbtn)
+                lbl.Size = UDim2.new(1, 0, 0, 35)
+                lbl.Position = UDim2.new(0, 0, 1, -35)
+                lbl.BackgroundTransparency = 0.3
+                lbl.BackgroundColor3 = Color3.new(0, 0, 0)
+                lbl.Text = skin
+                lbl.TextColor3 = Color3.new(1, 1, 1)
+                lbl.Font = Enum.Font.Gotham
+                lbl.TextScaled = true
+                lbl.BorderSizePixel = 0
+                
+                sbtn.MouseButton1Click:Connect(function()
+                    for _, c in pairs(SkinScroll:GetChildren()) do
+                        if c:IsA("ImageButton") then c.BackgroundColor3 = Color3.fromRGB(35, 35, 42) end
+                    end
+                    sbtn.BackgroundColor3 = Color3.fromRGB(60, 130, 60)
+                    _G.EquippedData[weapon].Skin = skin
+                    pcall(function() _G.CosmeticLibrary.Equip(weapon, "Skin", skin) end)
+                    SelectedLabel.Text = "✅ EQUIPPED: " .. weapon .. " — " .. skin
+                end)
+            end
+            SkinScroll.CanvasSize = UDim2.new(0, 0, 0, SkinGrid.AbsoluteContentSize.Y + 40)
+        end)
+    end
+    WeaponScroll.CanvasSize = UDim2.new(0, 0, 0, WeaponLayout.AbsoluteContentSize.Y)
+
+    -- Draggable Logic
+    local dragging, dragStart, startPos
+    Title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true dragStart = input.Position startPos = Main.Position
+        end
+    end)
+    Title.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    Library:Notify('🎨 Custom Skin Changer UI Opened!', 3)
+end
 
 -- =============================================================================
 -- [ 1. MAIN COMBAT TAB ]
@@ -65,8 +393,7 @@ local AntiAimGroupBox = Tabs.Main:AddRightGroupbox('Hydra Anti-Aim')
 AntiAimGroupBox:AddToggle('AntiAimToggle', { Text = 'Enable Anti-Aim', Default = false })
 AntiAimGroupBox:AddDropdown('AntiAimMode', { 
     Values = { 'Hyper Spinbot', 'Backwards', 'Matrix Break', 'Pitch Flip', 'Fake Jitter' }, 
-    Default = 1, 
-    Text = 'Anti-Aim Style' 
+    Default = 1, Text = 'Anti-Aim Style' 
 })
 AntiAimGroupBox:AddSlider('AntiAimSpeed', { Text = 'Glitch/Rotation Speed', Default = 150, Min = 10, Max = 500, Rounding = 0 })
 
@@ -149,6 +476,12 @@ EspGroupBox:AddToggle('EspSkeleton', { Text = 'Skeleton Bones', Default = false 
 EspGroupBox:AddToggle('EspName', { Text = 'Display Player Name', Default = false }):AddColorPicker('NameColor', { Default = Color3.fromRGB(255, 255, 255) })
 EspGroupBox:AddToggle('EspDistance', { Text = 'Display Distance', Default = false }):AddColorPicker('DistanceColor', { Default = Color3.fromRGB(255, 255, 255) })
 EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = false }):AddColorPicker('HealthBarColor', { Default = Color3.fromRGB(0, 255, 100) })
+
+local SkinSpooferBox = Tabs.Visuals:AddRightGroupbox('Custom Skin Changer')
+SkinSpooferBox:AddButton('Open Skin Changer UI', function()
+    InitCustomSkinChanger()
+end)
+SkinSpooferBox:AddLabel('스킨 체인저 전용 창을 엽니다.')
 
 -- =============================================================================
 -- [ 4. WORLD EFFECTS TAB ] 
@@ -236,34 +569,24 @@ InventoryBox:AddButton('Duplicate Current Weapon x4', function()
     end
 end)
 
--- [ 📱 찐 최종: NETWORK DEVICE SPOOFER ]
 local SpooferBox = Tabs.Misc:AddRightGroupbox('System Spoofer (기기 위조)')
-
 SpooferBox:AddDropdown('DeviceMode', { 
-    Values = { 'PC', 'Mobile', 'Console', 'VR' }, 
-    Default = 1, 
-    Text = '위조할 기기 선택' 
+    Values = { 'PC', 'Mobile', 'Console', 'VR' }, Default = 1, Text = '위조할 기기 선택' 
 }):OnChanged(function()
-    -- 드롭다운 값이 바뀔 때마다 서버로 위조 패킷을 전송!
     pcall(function()
         local remotes = ReplicatedStorage:FindFirstChild("Remotes")
         if remotes then
             local setControlsRemote = remotes:WaitForChild("Replication", 2):WaitForChild("Fighter", 2):WaitForChild("SetControls", 2)
-            
             if setControlsRemote then
                 local mode = Options.DeviceMode.Value
                 local targetDevice = "MouseKeyboard"
-                
                 if mode == "Mobile" then targetDevice = "Touch"
                 elseif mode == "Console" then targetDevice = "Gamepad"
                 elseif mode == "VR" then targetDevice = "VR"
                 end
-                
-                -- 작동 원리: PC로 먼저 리셋한 뒤 목표 기기로 변경하여 게임 엔진 트리거
                 setControlsRemote:FireServer("MouseKeyboard")
                 task.wait(0.3)
                 setControlsRemote:FireServer(targetDevice)
-                
                 Library:Notify("📱 서버에 기기 위조 신호 전송 완료: " .. mode, 3)
             end
         end
@@ -508,7 +831,7 @@ local function updateMovement(dt)
     end
 end
 
--- [ 🌟 METATABLE HOOKING (NAME_CALL - SILENT AIM) ]
+-- [ 🌟 UNIFIED METATABLE HOOKING (NAME_CALL - SILENT AIM + SKIN CHANGER) ]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -517,25 +840,74 @@ mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
     
-    if not checkcaller() and typeof(self) == "Instance" and self.Name == "UseItem" and method == "FireServer" then
-        if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
-            local targetPlayer = getClosestPlayerToMous()
-            if targetPlayer and targetPlayer.Character then
-                local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
-                local targetPart = targetPlayer.Character:FindFirstChild(partName)
-                
-                if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
-                    local hitPos = targetPart.Position
-                    if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.135) 
+    if not checkcaller() and method == "FireServer" then
+        
+        -- [ UseItem: Silent Aim & Tracker ]
+        if typeof(self) == "Instance" and self.Name == "UseItem" then
+            if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
+                local targetPlayer = getClosestPlayerToMous()
+                if targetPlayer and targetPlayer.Character then
+                    local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
+                    local targetPart = targetPlayer.Character:FindFirstChild(partName)
+                    
+                    if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
+                        local hitPos = targetPart.Position
+                        if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.135) 
+                        end
+                        if args[3]["\001"]["\001"] then args[3]["\001"]["\001"]["\001"] = hitPos.X args[3]["\001"]["\001"]["\000"] = hitPos.Y args[3]["\001"]["\001"]["\002"] = hitPos.Z end
+                        if args[3]["\001"]["\000"] then args[3]["\001"]["\000"]["\001"] = hitPos.X args[3]["\001"]["\000"]["\000"] = hitPos.Y args[3]["\001"]["\000"]["\002"] = hitPos.Z end
+                        args[3]["\001"]["\002"] = targetPart
                     end
-                    if args[3]["\001"]["\001"] then args[3]["\001"]["\001"]["\001"] = hitPos.X args[3]["\001"]["\001"]["\000"] = hitPos.Y args[3]["\001"]["\001"]["\002"] = hitPos.Z end
-                    if args[3]["\001"]["\000"] then args[3]["\001"]["\000"]["\001"] = hitPos.X args[3]["\001"]["\000"]["\000"] = hitPos.Y args[3]["\001"]["\000"]["\002"] = hitPos.Z end
-                    args[3]["\001"]["\002"] = targetPart
                 end
             end
+            
+            -- Tracker for Finisher Effect
+            if _G.FighterController then
+                task.spawn(function()
+                    pcall(function()
+                        local fighter = _G.FighterController:GetFighter(LocalPlayer)
+                        if fighter and fighter.Items then
+                            for _, item in pairs(fighter.Items) do
+                                if item:Get("ObjectID") == args[1] then
+                                    _G.LastUsedWeapon = item.Name break
+                                end
+                            end
+                        end
+                    end)
+                end)
+            end
+        end
+
+        -- [ EquipCosmetic: Block Server Packet ]
+        if typeof(self) == "Instance" and self.Name == "EquipCosmetic" and _G.SkinSpooferActive then
+            local weaponName, cosmeticType, cosmeticName = args[1], args[2], args[3]
+            
+            if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
+                _G.EquippedData[weaponName] = _G.EquippedData[weaponName] or {}
+                _G.EquippedData[weaponName][cosmeticType] = nil
+            else
+                if _G.CosmeticLibrary and _G.CosmeticLibrary.Cosmetics then
+                    local base = _G.CosmeticLibrary.Cosmetics[cosmeticName]
+                    if base then
+                        local cloned = {}
+                        for k, v in pairs(base) do cloned[k] = v end
+                        cloned.Name = cosmeticName
+                        cloned.Type = cosmeticType
+                        if _G.EnumLibrary then pcall(function() cloned.Enum = _G.EnumLibrary:ToEnum(cosmeticName) end) end
+                        _G.EquippedData[weaponName] = _G.EquippedData[weaponName] or {}
+                        _G.EquippedData[weaponName][cosmeticType] = cloned
+                    end
+                end
+            end
+            
+            if _G.DataController then
+                task.defer(function() pcall(function() _G.DataController.CurrentData:Replicate("WeaponInventory") end) end)
+            end
+            return -- Block Server Communication
         end
     end
+    
     return oldNamecall(self, unpack(args))
 end)
 setreadonly(mt, true)
@@ -680,6 +1052,7 @@ MenuGroup:AddButton('Unload Script', function()
         end
         if glitchConnection then glitchConnection:Disconnect() end
         FOVCircle:Destroy() if weatherAnchor then weatherAnchor:Destroy() end
+        if SkinGuiMaster then SkinGuiMaster:Destroy() end
         for _, d in pairs(espCache) do
             if d.Box then d.Box:Destroy() end if d.Fill then d.Fill:Destroy() end
             if d.HealthOutline then d.HealthOutline:Destroy() end if d.HealthBar then d.HealthBar:Destroy() end
