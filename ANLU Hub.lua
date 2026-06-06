@@ -73,7 +73,6 @@ local function InitUnlockAll()
     local origOwns = _G.CosmeticLibrary.OwnsCosmetic
     _G.CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
         if not _G.UnlockAllActive then return origOwns(self, inventory, name, weapon) end 
-        
         if type(name) == "string" and name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end
         return true
     end
@@ -364,7 +363,7 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
 
--- [ 🎨 AUTO-DUMP SKIN CHANGER UI ]
+-- 🔽 [ 이 부분이 빠졌던 SKIN CHANGER UI 입니다! ] 🔽
 local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
 
 local availableWeapons = { "AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher" }
@@ -383,11 +382,12 @@ SkinChangerBox:AddDropdown('TargetSkin', {
 })
 
 SkinChangerBox:AddButton('🔄 코스메틱 데이터 긁어오기', function()
-    -- Unlock All이 안 켜져 있으면 라이브러리가 require 안 됐을 수 있으므로 강제 로드 시도
-    local CosmeticLib = _G.CosmeticLibrary or pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
-    if type(CosmeticLib) ~= "table" and type(_G.CosmeticLibrary) == "table" then CosmeticLib = _G.CosmeticLibrary end
+    local CosmeticLib = _G.CosmeticLibrary
+    if type(CosmeticLib) ~= "table" then
+        pcall(function() CosmeticLib = require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+    end
 
-    if CosmeticLib and CosmeticLib.Cosmetics then
+    if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then
         local tempSkins = {}
         for name, data in pairs(CosmeticLib.Cosmetics) do
             if type(data) == "table" and (data.Type == "Skin" or data.Type == "Wrap") then
@@ -417,7 +417,6 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     local skin = Options.TargetSkin.Value
 
     if weapon and skin and skin ~= "Load Skins First..." and skin ~= "None Found" then
-        -- 전역 테이블 덮어쓰기
         _G.AxiomEquipped[weapon] = _G.AxiomEquipped[weapon] or {}
         _G.AxiomEquipped[weapon].Skin = {
             Name = skin,
@@ -425,7 +424,6 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
             Seed = math.random(1, 9999999)
         }
         
-        -- 뷰모델 리프레시 강제 유도
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
@@ -436,6 +434,7 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
         Library:Notify('⚠️ 올바른 무기와 스킨을 선택해주세요.', 3)
     end
 end)
+-- 🔼 [ SKIN CHANGER UI 끝 ] 🔼
 
 -- =============================================================================
 -- [ 4. WORLD EFFECTS TAB ] 
@@ -922,11 +921,20 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ FastFire & RageBot Thread ]
-local UseItemRemote = ReplicatedStorage:WaitForChild("Remotes", 5)
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("Replication", 5) end
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("Fighter", 5) end
-if UseItemRemote then UseItemRemote = UseItemRemote:WaitForChild("UseItem", 5) end
+-- [ ✅ UI 프리징/블로킹 해결: 비동기 처리 적용 구간 ]
+local UseItemRemote = nil
+task.spawn(function()
+    local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
+    if remotes then
+        local rep = remotes:WaitForChild("Replication", 5)
+        if rep then
+            local fighter = rep:WaitForChild("Fighter", 5)
+            if fighter then
+                UseItemRemote = fighter:WaitForChild("UseItem", 5)
+            end
+        end
+    end
+end)
 
 task.spawn(function()
     while task.wait(0.1) do
