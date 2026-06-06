@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL OPTIMIZED)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + TOGGLEABLE UNLOCK ALL)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -42,9 +42,10 @@ FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
 
 -- =============================================================================
--- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION (LAG-FREE OPTIMIZED) ]
+-- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION (TOGGLE FIX) ]
 -- =============================================================================
 _G.UnlockAllActive = false
+_G.HooksInitialized = false
 _G.AxiomEquipped = {}
 _G.AxiomFavorites = {}
 _G.LastUsedWeapon = nil
@@ -52,8 +53,8 @@ _G.ConstructingWeapon = nil
 _G.ViewingProfile = nil
 
 local function InitUnlockAll()
-    if _G.UnlockAllActive then return end
-    _G.UnlockAllActive = true
+    if _G.HooksInitialized then return end
+    _G.HooksInitialized = true
 
     local controllers = LocalPlayer.PlayerScripts:WaitForChild("Controllers", 10)
     
@@ -71,14 +72,18 @@ local function InitUnlockAll()
 
     local origOwns = _G.CosmeticLibrary.OwnsCosmetic
     _G.CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if not _G.UnlockAllActive then return origOwns(self, inventory, name, weapon) end -- 토글 OFF 시 순정 복구
+        
         if type(name) == "string" and name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end
         return true
     end
 
-    -- // 2. DATA CONTROLLER HOOKS (최적화 완료: table.clone 사용)
+    -- // 2. DATA CONTROLLER HOOKS 
     local origGet = _G.DataController.Get
     _G.DataController.Get = function(self, key)
         local data = origGet(self, key)
+        if not _G.UnlockAllActive then return data end -- 토글 OFF 시 순정 복구
+
         if key == "CosmeticInventory" then
             local proxy = data and table.clone(data) or {}
             return setmetatable(proxy, { __index = function() return true end })
@@ -97,6 +102,8 @@ local function InitUnlockAll()
     local origGetWeaponData = _G.DataController.GetWeaponData
     _G.DataController.GetWeaponData = function(self, weaponName)
         local data = origGetWeaponData(self, weaponName)
+        if not _G.UnlockAllActive then return data end -- 토글 OFF 시 순정 복구
+        
         if not data then return nil end
         if _G.AxiomEquipped[weaponName] then
             local merged = table.clone(data)
@@ -116,6 +123,8 @@ local function InitUnlockAll()
     if ClientItem and ClientItem._CreateViewModel then
         local origCreateViewModel = ClientItem._CreateViewModel
         ClientItem._CreateViewModel = function(self, viewmodelRef)
+            if not _G.UnlockAllActive then return origCreateViewModel(self, viewmodelRef) end -- 토글 OFF 시 순정 복구
+            
             local weaponName = self.Name
             local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
             _G.ConstructingWeapon = (weaponPlayer == LocalPlayer) and weaponName or nil
@@ -144,6 +153,8 @@ local function InitUnlockAll()
         if ClientViewModel.GetWrap then
             local origGetWrap = ClientViewModel.GetWrap
             ClientViewModel.GetWrap = function(self)
+                if not _G.UnlockAllActive then return origGetWrap(self) end -- 토글 OFF 시 순정 복구
+                
                 local weaponName = self.ClientItem and self.ClientItem.Name
                 local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
                 if weaponName and weaponPlayer == LocalPlayer and _G.AxiomEquipped[weaponName] and _G.AxiomEquipped[weaponName].Wrap then
@@ -155,6 +166,8 @@ local function InitUnlockAll()
 
         local origNew = ClientViewModel.new
         ClientViewModel.new = function(replicatedData, clientItem)
+            if not _G.UnlockAllActive then return origNew(replicatedData, clientItem) end -- 토글 OFF 시 순정 복구
+            
             local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
             local weaponName = _G.ConstructingWeapon or clientItem.Name
             if weaponPlayer == LocalPlayer and _G.AxiomEquipped[weaponName] then
@@ -178,6 +191,8 @@ local function InitUnlockAll()
     -- // 4. ITEM LIBRARY IMAGE FIX
     local origGetVMImage = _G.ItemLibrary.GetViewModelImageFromWeaponData
     _G.ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
+        if not _G.UnlockAllActive then return origGetVMImage(self, weaponData, highRes) end -- 토글 OFF 시 순정 복구
+        
         if not weaponData then return origGetVMImage(self, weaponData, highRes) end
         local weaponName = weaponData.Name
         local hasSkin = _G.AxiomEquipped[weaponName] and _G.AxiomEquipped[weaponName].Skin
@@ -193,24 +208,14 @@ local function InitUnlockAll()
         return origGetVMImage(self, weaponData, highRes)
     end
 
-    -- // 5. VIEW PROFILE HOOK
-    pcall(function()
-        local ViewProfile = require(LocalPlayer.PlayerScripts.Modules.Pages.ViewProfile)
-        if ViewProfile and ViewProfile.Fetch then
-            local origFetch = ViewProfile.Fetch
-            ViewProfile.Fetch = function(self, targetPlayer)
-                _G.ViewingProfile = targetPlayer
-                return origFetch(self, targetPlayer)
-            end
-        end
-    end)
-
-    -- // 6. FINISHER FIX
+    -- // 5. FINISHER FIX
     local ClientEntity
     pcall(function() ClientEntity = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientEntity) end)
     if ClientEntity and ClientEntity.ReplicateFromServer then
         local origReplicate = ClientEntity.ReplicateFromServer
         ClientEntity.ReplicateFromServer = function(self, action, ...)
+            if not _G.UnlockAllActive then return origReplicate(self, action, ...) end -- 토글 OFF 시 순정 복구
+            
             if action == "FinisherEffect" then
                 local args = {...}
                 local killerName = args[3]
@@ -349,9 +354,12 @@ EspGroupBox:AddToggle('EspHealthBar', { Text = 'Health Bar Status', Default = fa
 
 local SkinSpooferBox = Tabs.Visuals:AddRightGroupbox('Unlock All Cosmetics')
 SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game)', Default = false }):OnChanged(function()
-    if Toggles.EnableUnlockAll.Value then
+    _G.UnlockAllActive = Toggles.EnableUnlockAll.Value
+    if _G.UnlockAllActive then
         InitUnlockAll()
         Library:Notify('🔓 Unlock All Active! 로비의 인벤토리 창을 사용하세요.', 4)
+    else
+        Library:Notify('🔒 Unlock All Disabled. 원래 인벤토리 상태로 복구되었습니다.', 3)
     end
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
