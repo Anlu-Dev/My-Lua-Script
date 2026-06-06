@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + TOGGLEABLE UNLOCK ALL)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + TOGGLEABLE UNLOCK ALL + SKIN CHANGER)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -72,7 +72,7 @@ local function InitUnlockAll()
 
     local origOwns = _G.CosmeticLibrary.OwnsCosmetic
     _G.CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if not _G.UnlockAllActive then return origOwns(self, inventory, name, weapon) end -- 토글 OFF 시 순정 복구
+        if not _G.UnlockAllActive then return origOwns(self, inventory, name, weapon) end 
         
         if type(name) == "string" and name:find("MISSING_") then return origOwns(self, inventory, name, weapon) end
         return true
@@ -82,7 +82,7 @@ local function InitUnlockAll()
     local origGet = _G.DataController.Get
     _G.DataController.Get = function(self, key)
         local data = origGet(self, key)
-        if not _G.UnlockAllActive then return data end -- 토글 OFF 시 순정 복구
+        if not _G.UnlockAllActive then return data end 
 
         if key == "CosmeticInventory" then
             local proxy = data and table.clone(data) or {}
@@ -102,7 +102,7 @@ local function InitUnlockAll()
     local origGetWeaponData = _G.DataController.GetWeaponData
     _G.DataController.GetWeaponData = function(self, weaponName)
         local data = origGetWeaponData(self, weaponName)
-        if not _G.UnlockAllActive then return data end -- 토글 OFF 시 순정 복구
+        if not _G.UnlockAllActive then return data end 
         
         if not data then return nil end
         if _G.AxiomEquipped[weaponName] then
@@ -123,7 +123,7 @@ local function InitUnlockAll()
     if ClientItem and ClientItem._CreateViewModel then
         local origCreateViewModel = ClientItem._CreateViewModel
         ClientItem._CreateViewModel = function(self, viewmodelRef)
-            if not _G.UnlockAllActive then return origCreateViewModel(self, viewmodelRef) end -- 토글 OFF 시 순정 복구
+            if not _G.UnlockAllActive then return origCreateViewModel(self, viewmodelRef) end 
             
             local weaponName = self.Name
             local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
@@ -153,7 +153,7 @@ local function InitUnlockAll()
         if ClientViewModel.GetWrap then
             local origGetWrap = ClientViewModel.GetWrap
             ClientViewModel.GetWrap = function(self)
-                if not _G.UnlockAllActive then return origGetWrap(self) end -- 토글 OFF 시 순정 복구
+                if not _G.UnlockAllActive then return origGetWrap(self) end 
                 
                 local weaponName = self.ClientItem and self.ClientItem.Name
                 local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
@@ -166,7 +166,7 @@ local function InitUnlockAll()
 
         local origNew = ClientViewModel.new
         ClientViewModel.new = function(replicatedData, clientItem)
-            if not _G.UnlockAllActive then return origNew(replicatedData, clientItem) end -- 토글 OFF 시 순정 복구
+            if not _G.UnlockAllActive then return origNew(replicatedData, clientItem) end 
             
             local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
             local weaponName = _G.ConstructingWeapon or clientItem.Name
@@ -191,7 +191,7 @@ local function InitUnlockAll()
     -- // 4. ITEM LIBRARY IMAGE FIX
     local origGetVMImage = _G.ItemLibrary.GetViewModelImageFromWeaponData
     _G.ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
-        if not _G.UnlockAllActive then return origGetVMImage(self, weaponData, highRes) end -- 토글 OFF 시 순정 복구
+        if not _G.UnlockAllActive then return origGetVMImage(self, weaponData, highRes) end 
         
         if not weaponData then return origGetVMImage(self, weaponData, highRes) end
         local weaponName = weaponData.Name
@@ -214,7 +214,7 @@ local function InitUnlockAll()
     if ClientEntity and ClientEntity.ReplicateFromServer then
         local origReplicate = ClientEntity.ReplicateFromServer
         ClientEntity.ReplicateFromServer = function(self, action, ...)
-            if not _G.UnlockAllActive then return origReplicate(self, action, ...) end -- 토글 OFF 시 순정 복구
+            if not _G.UnlockAllActive then return origReplicate(self, action, ...) end 
             
             if action == "FinisherEffect" then
                 local args = {...}
@@ -342,7 +342,7 @@ OrbitGroupBox:AddSlider('OrbitSpeed', { Text = 'Orbit Speed', Default = 150, Min
 OrbitGroupBox:AddSlider('OrbitHeight', { Text = 'Orbit Height Offset', Default = 3, Min = -50, Max = 50, Rounding = 0 })
 
 -- =============================================================================
--- [ 3. VISUALS ESP TAB ]
+-- [ 3. VISUALS ESP & SKIN CHANGER TAB ]
 -- =============================================================================
 local EspGroupBox = Tabs.Visuals:AddLeftGroupbox('Player ESP Options')
 EspGroupBox:AddToggle('EspBox', { Text = 'Bounding Box', Default = false }):AddColorPicker('BoxColor', { Default = Color3.fromRGB(255, 255, 255) })
@@ -363,6 +363,79 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
     end
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
+
+-- [ 🎨 AUTO-DUMP SKIN CHANGER UI ]
+local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
+
+local availableWeapons = { "AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher" }
+local availableSkins = { "Load Skins First..." }
+
+SkinChangerBox:AddDropdown('TargetWeapon', {
+    Values = availableWeapons,
+    Default = 1,
+    Text = '대상 무기 선택'
+})
+
+SkinChangerBox:AddDropdown('TargetSkin', {
+    Values = availableSkins,
+    Default = 1,
+    Text = '적용할 스킨 선택'
+})
+
+SkinChangerBox:AddButton('🔄 코스메틱 데이터 긁어오기', function()
+    -- Unlock All이 안 켜져 있으면 라이브러리가 require 안 됐을 수 있으므로 강제 로드 시도
+    local CosmeticLib = _G.CosmeticLibrary or pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+    if type(CosmeticLib) ~= "table" and type(_G.CosmeticLibrary) == "table" then CosmeticLib = _G.CosmeticLibrary end
+
+    if CosmeticLib and CosmeticLib.Cosmetics then
+        local tempSkins = {}
+        for name, data in pairs(CosmeticLib.Cosmetics) do
+            if type(data) == "table" and (data.Type == "Skin" or data.Type == "Wrap") then
+                table.insert(tempSkins, name)
+            end
+        end
+        table.sort(tempSkins)
+        if #tempSkins > 0 then
+            Options.TargetSkin:SetValues(tempSkins)
+            Library:Notify('✅ 스킨 목록 로드 완료! ('..tostring(#tempSkins)..'개 추출됨)', 3)
+        else
+            Options.TargetSkin:SetValues({"None Found"})
+            Library:Notify('⚠️ 스킨 데이터를 찾지 못했습니다.', 3)
+        end
+    else
+        Library:Notify('❌ 오류: 라이브러리를 찾을 수 없습니다. Unlock All을 먼저 켜보세요.', 4)
+    end
+end)
+
+SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
+    if not _G.UnlockAllActive then
+        Library:Notify('❌ [오류] 먼저 위쪽의 Unlock All 기능을 활성화해주세요!', 4)
+        return
+    end
+
+    local weapon = Options.TargetWeapon.Value
+    local skin = Options.TargetSkin.Value
+
+    if weapon and skin and skin ~= "Load Skins First..." and skin ~= "None Found" then
+        -- 전역 테이블 덮어쓰기
+        _G.AxiomEquipped[weapon] = _G.AxiomEquipped[weapon] or {}
+        _G.AxiomEquipped[weapon].Skin = {
+            Name = skin,
+            Type = "Skin",
+            Seed = math.random(1, 9999999)
+        }
+        
+        -- 뷰모델 리프레시 강제 유도
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:UnequipTools()
+            Library:Notify('✅ ['..weapon..']에 '..skin..' 스킨 변조 완료!\n인벤토리에서 무기를 다시 꺼내면 적용됩니다.', 5)
+        end
+    else
+        Library:Notify('⚠️ 올바른 무기와 스킨을 선택해주세요.', 3)
+    end
+end)
 
 -- =============================================================================
 -- [ 4. WORLD EFFECTS TAB ] 
