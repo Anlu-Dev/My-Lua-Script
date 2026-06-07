@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA + RAGE)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA + GOD MODE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -253,11 +253,12 @@ AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, D
 
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot (ULTIMATE)')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Instant Bullet Magnet', Default = false })
-RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
+RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 5000, Min = 100, Max = 100000, Rounding = 0 })
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 RageMainBox:AddToggle('KillAllToggle', { Text = 'Enable AOE (Kill All Players)', Default = false })
-RageMainBox:AddToggle('HitboxExpander', { Text = 'Enable Hitbox Expander', Default = false })
+RageMainBox:AddToggle('HitboxExpander', { Text = 'Enable Head Hitbox Expander', Default = false })
 RageMainBox:AddSlider('HitboxSize', { Text = 'Hitbox Size (Studs)', Default = 20, Min = 5, Max = 100, Rounding = 0 })
+RageMainBox:AddToggle('AntiDamage', { Text = 'Delete Enemy Bullets (God Mode)', Default = false })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
@@ -579,8 +580,8 @@ local function getClosestPlayerToMous()
     local mousePos = UserInputService:GetMouseLocation()
 
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = p.Character.HumanoidRootPart
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            local hrp = p.Character.Head
             local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen or (Toggles.WallBang and Toggles.WallBang.Value) then
                 local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
@@ -824,8 +825,7 @@ mt.__namecall = newcclosure(function(self, ...)
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
                 local targetPlayer = getClosestPlayerToMous()
                 if targetPlayer and targetPlayer.Character then
-                    local partName = (Toggles.ClosestPart and Toggles.ClosestPart.Value) and "Head" or "HumanoidRootPart"
-                    local targetPart = targetPlayer.Character:FindFirstChild(partName)
+                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 헤드 강제 조준
                     
                     if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
                         local hitPos = targetPart.Position
@@ -944,7 +944,7 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ ✅ UI 프리징 방지 및 극한의 오토 슛/패킷 난사 (AOE) 쓰레드 ]
+-- [ ✅ UI 프리징 방지 및 극한의 오토 슛/패킷 난사 (AOE 헤드샷 전용) 쓰레드 ]
 local UseItemRemote = nil
 task.spawn(function()
     local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
@@ -965,44 +965,54 @@ task.spawn(function()
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
         local isKillAll = Toggles and Toggles.KillAllToggle and Toggles.KillAllToggle.Value
 
-        if (isFastFire or isAutoShoot) and UseItemRemote then
-            local targets = {}
-            
-            if isKillAll then
-                -- 맵 상의 살아있는 모든 플레이어를 타겟으로 지정 (광역 공격)
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                        local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                        if hum and hum.Health > 0 then
-                            table.insert(targets, p)
-                        end
-                    end
-                end
-            else
-                -- 단일 타겟팅 유지
-                local targetPlayer = getClosestPlayerToMous()
-                if targetPlayer then table.insert(targets, targetPlayer) end
+        if (isFastFire or isAutoShoot) then
+            -- 1. 패킷 막힘 방지: 무기를 강제로 우클릭/좌클릭 상태로 만들어 실제 발사 유도
+            local char = LocalPlayer.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
+            if tool then
+                pcall(function() tool:Activate() end)
             end
 
-            local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
-
-            for _, targetPlayer in ipairs(targets) do
-                local targetHrp = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            -- 2. 패킷 난사 로직 (헤드샷 집중 타격)
+            if UseItemRemote then
+                local targets = {}
                 
-                if targetHrp then
-                    local customArgs = {
-                        [1] = "\207\147", [2] = "\026",
-                        [3] = { ["\001"] = {
-                            ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                            ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                            ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                            ["\002"] = targetHrp -- 타겟 파트 직접 주입
-                        }}
-                    }
+                if isKillAll then
+                    -- 맵 상의 살아있는 모든 플레이어를 타겟으로 지정
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                            if hum and hum.Health > 0 then
+                                table.insert(targets, p)
+                            end
+                        end
+                    end
+                else
+                    -- 단일 타겟팅
+                    local targetPlayer = getClosestPlayerToMous()
+                    if targetPlayer then table.insert(targets, targetPlayer) end
+                end
+
+                local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
+
+                for _, targetPlayer in ipairs(targets) do
+                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 헤드샷 강제 지정
                     
-                    -- 한 번의 루프에 설정된 배수(최대 50배)만큼 데미지 패킷 난사
-                    for i = 1, multiplier do
-                        task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
+                    if targetPart then
+                        local customArgs = {
+                            [1] = "\207\147", [2] = "\026",
+                            [3] = { ["\001"] = {
+                                ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
+                                ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
+                                ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
+                                ["\002"] = targetPart -- 타겟 파트 주입
+                            }}
+                        }
+                        
+                        -- 한 번의 루프에 설정된 배수만큼 데미지 패킷 난사
+                        for i = 1, multiplier do
+                            task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
+                        end
                     end
                 end
             end
@@ -1010,15 +1020,34 @@ task.spawn(function()
     end
 end)
 
--- [ 🌟 즉각 탄환 텔레포트 (Instant Bullet Magnet) ]
+-- [ 🌟 즉각 탄환 텔레포트 및 갓모드 (Instant Bullet Magnet & Delete Enemy Bullets) ]
 workspace.DescendantAdded:Connect(function(d) 
-    if not Toggles or not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then return end
+    if not Toggles then return end
     if not d:IsA("BasePart") then return end
     
     local name = d.Name:lower()
     if name:find("bullet") or name:find("projectile") then
         task.spawn(function()
-            -- 물리 충돌을 무시하고 총알 크기를 비정상적으로 키워 무조건 명중하게 유도
+            -- 🔽 방어 로직: 내 근처로 날아오는 적의 총알 강제 삭제 (God Mode)
+            if Toggles.AntiDamage and Toggles.AntiDamage.Value then
+                local antiHitConn
+                antiHitConn = RunService.RenderStepped:Connect(function()
+                    if not d or not d.Parent then antiHitConn:Disconnect() return end
+                    local myChar = LocalPlayer.Character
+                    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                    if myHrp then
+                        -- 총알이 내 캐릭터 기준 15 Studs 이내로 접근하면 파괴
+                        if (d.Position - myHrp.Position).Magnitude < 15 then
+                            d:Destroy()
+                            antiHitConn:Disconnect()
+                        end
+                    end
+                end)
+            end
+
+            -- 🔽 공격 로직: 탄환 즉시 텔레포트 (100k 속도)
+            if not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then return end
+            
             pcall(function() d.CanCollide = false d.Size = Vector3.new(20, 20, 20) d.Transparency = 0.5 end)
             
             local connection
@@ -1028,9 +1057,8 @@ workspace.DescendantAdded:Connect(function(d)
                 local tp = getClosestPlayerToMous()
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
-                    -- 유도 연산을 생략하고 적 머리 좌표로 즉시 텔레포트시켜 꽂아버림
                     d.CFrame = CFrame.new(head.Position)
-                    d.Velocity = Vector3.zero 
+                    d.Velocity = (head.Position - d.Position).Unit * Options.BaseVelocity.Value
                 end
             end)
         end)
@@ -1048,17 +1076,17 @@ end)
 
 -- [ MAIN LOOPS ]
 RunService.RenderStepped:Connect(function(dt)
-    -- [ 히트박스 강제 확장 (Hitbox Expander) ]
+    -- [ 헤드 히트박스 강제 확장 (Head Hitbox Expander) ]
     if Toggles and Toggles.HitboxExpander and Toggles.HitboxExpander.Value then
         for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                -- 투명하고 거대한 붉은색 히트박스 생성
-                hrp.Size = Vector3.new(Options.HitboxSize.Value, Options.HitboxSize.Value, Options.HitboxSize.Value)
-                hrp.Transparency = 0.8
-                hrp.BrickColor = BrickColor.new("Bright red")
-                hrp.Material = Enum.Material.Neon
-                hrp.CanCollide = false
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                local head = p.Character.Head
+                -- 투명하고 거대한 붉은색 헤드 히트박스 생성
+                head.Size = Vector3.new(Options.HitboxSize.Value, Options.HitboxSize.Value, Options.HitboxSize.Value)
+                head.Transparency = 0.8
+                head.BrickColor = BrickColor.new("Bright red")
+                head.Material = Enum.Material.Neon
+                head.CanCollide = false
             end
         end
     end
