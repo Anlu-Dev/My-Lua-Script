@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA + RAGE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -251,11 +251,13 @@ AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = 
 AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
 AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = 'Target Part' })
 
-local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
-RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
-RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
--- 🔽 [ 오토 슛 (킬 오라) 토글 ] 🔽
+local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot (ULTIMATE)')
+RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Instant Bullet Magnet', Default = false })
+RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
+RageMainBox:AddToggle('KillAllToggle', { Text = 'Enable AOE (Kill All Players)', Default = false })
+RageMainBox:AddToggle('HitboxExpander', { Text = 'Enable Hitbox Expander', Default = false })
+RageMainBox:AddSlider('HitboxSize', { Text = 'Hitbox Size (Studs)', Default = 20, Min = 5, Max = 100, Rounding = 0 })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
@@ -370,7 +372,6 @@ local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
 local weaponToSkins = {}
 local availableWeapons = {"AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher"}
 
--- 드롭다운을 에러 없이 안전하게 먼저 생성합니다
 SkinChangerBox:AddDropdown('TargetWeapon', {
     Values = availableWeapons,
     Default = 1,
@@ -383,7 +384,6 @@ SkinChangerBox:AddDropdown('TargetSkin', {
     Text = '적용할 스킨 선택'
 })
 
--- OnChanged 안에 pcall을 걸어서 어떤 에러가 나더라도 UI 스레드를 다운시키지 않도록 보호합니다
 Options.TargetWeapon:OnChanged(function(val)
     pcall(function()
         if not Options.TargetSkin then return end
@@ -424,7 +424,6 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     end
 end)
 
--- 백그라운드에서 데이터를 긁어와서 UI 갱신 (메인 스레드 블로킹 방지)
 task.spawn(function()
     local CosmeticLib = nil
     while not CosmeticLib do
@@ -456,7 +455,6 @@ task.spawn(function()
         for _, skins in pairs(weaponToSkins) do table.sort(skins) end
     end
     
-    -- UI 갱신도 안전하게 pcall 래핑
     while not (Options and Options.TargetWeapon) do task.wait(0.1) end
     pcall(function() Options.TargetWeapon:SetValues(availableWeapons) end)
 end)
@@ -529,7 +527,7 @@ end)
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('Network Packet Overclock')
 WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', Default = false })
-WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 4, Min = 1, Max = 10, Rounding = 0 })
+WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 10, Min = 1, Max = 50, Rounding = 0 })
 
 local InventoryBox = Tabs.Misc:AddLeftGroupbox('Inventory Modification')
 InventoryBox:AddButton('Duplicate Current Weapon x4', function()
@@ -946,7 +944,7 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ ✅ UI 프리징 방지 및 오토 슛/패킷 난사 쓰레드 ]
+-- [ ✅ UI 프리징 방지 및 극한의 오토 슛/패킷 난사 (AOE) 쓰레드 ]
 local UseItemRemote = nil
 task.spawn(function()
     local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
@@ -962,28 +960,47 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.05) do -- 킬 오라 반응 속도를 위한 짧은 딜레이
+    while task.wait(0.01) do -- 딜레이 극한 감소
         local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
+        local isKillAll = Toggles and Toggles.KillAllToggle and Toggles.KillAllToggle.Value
 
         if (isFastFire or isAutoShoot) and UseItemRemote then
-            local targetPlayer = getClosestPlayerToMous()
-            if targetPlayer and targetPlayer.Character then
-                local hum = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
-                local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local targets = {}
+            
+            if isKillAll then
+                -- 맵 상의 살아있는 모든 플레이어를 타겟으로 지정 (광역 공격)
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                        if hum and hum.Health > 0 then
+                            table.insert(targets, p)
+                        end
+                    end
+                end
+            else
+                -- 단일 타겟팅 유지
+                local targetPlayer = getClosestPlayerToMous()
+                if targetPlayer then table.insert(targets, targetPlayer) end
+            end
+
+            local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
+
+            for _, targetPlayer in ipairs(targets) do
+                local targetHrp = targetPlayer.Character:FindFirstChild("Head") or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
                 
-                if hum and hum.Health > 0 and targetHrp then
+                if targetHrp then
                     local customArgs = {
                         [1] = "\207\147", [2] = "\026",
                         [3] = { ["\001"] = {
                             ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
                             ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
                             ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                            ["\002"] = targetHrp
+                            ["\002"] = targetHrp -- 타겟 파트 직접 주입
                         }}
                     }
                     
-                    local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
+                    -- 한 번의 루프에 설정된 배수(최대 50배)만큼 데미지 패킷 난사
                     for i = 1, multiplier do
                         task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
                     end
@@ -993,7 +1010,7 @@ task.spawn(function()
     end
 end)
 
--- [ 🌟 최적화된 DescendantAdded 이벤트 (프레임 드랍 픽스) ]
+-- [ 🌟 즉각 탄환 텔레포트 (Instant Bullet Magnet) ]
 workspace.DescendantAdded:Connect(function(d) 
     if not Toggles or not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then return end
     if not d:IsA("BasePart") then return end
@@ -1001,19 +1018,19 @@ workspace.DescendantAdded:Connect(function(d)
     local name = d.Name:lower()
     if name:find("bullet") or name:find("projectile") then
         task.spawn(function()
-            pcall(function() d.CanCollide = false d.Size = d.Size * 3 end)
+            -- 물리 충돌을 무시하고 총알 크기를 비정상적으로 키워 무조건 명중하게 유도
+            pcall(function() d.CanCollide = false d.Size = Vector3.new(20, 20, 20) d.Transparency = 0.5 end)
+            
             local connection
             connection = RunService.RenderStepped:Connect(function()
                 if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
+                
                 local tp = getClosestPlayerToMous()
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
-                    local dist = (head.Position - d.Position).Magnitude
-                    local spd = Options.BaseVelocity.Value
-                    if dist < (spd * 0.016) then d.CFrame = CFrame.new(head.Position) else
-                        d.Velocity = (head.Position - d.Position).Unit * spd
-                        d.CFrame = CFrame.lookAt(d.Position, head.Position)
-                    end
+                    -- 유도 연산을 생략하고 적 머리 좌표로 즉시 텔레포트시켜 꽂아버림
+                    d.CFrame = CFrame.new(head.Position)
+                    d.Velocity = Vector3.zero 
                 end
             end)
         end)
@@ -1031,6 +1048,21 @@ end)
 
 -- [ MAIN LOOPS ]
 RunService.RenderStepped:Connect(function(dt)
+    -- [ 히트박스 강제 확장 (Hitbox Expander) ]
+    if Toggles and Toggles.HitboxExpander and Toggles.HitboxExpander.Value then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = p.Character.HumanoidRootPart
+                -- 투명하고 거대한 붉은색 히트박스 생성
+                hrp.Size = Vector3.new(Options.HitboxSize.Value, Options.HitboxSize.Value, Options.HitboxSize.Value)
+                hrp.Transparency = 0.8
+                hrp.BrickColor = BrickColor.new("Bright red")
+                hrp.Material = Enum.Material.Neon
+                hrp.CanCollide = false
+            end
+        end
+    end
+
     if Toggles.ShowFOV.Value then
         FOVCircle.Position = UserInputService:GetMouseLocation()
         FOVCircle.Radius = Options.Radius.Value
