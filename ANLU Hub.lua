@@ -254,7 +254,6 @@ AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, D
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
--- 🔽 [추가된 오토 슛 (킬 오라) 토글] 🔽
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
@@ -365,16 +364,20 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
 
--- 🔽 [ 🎨 스마트 무기별 스킨 필터링 (Auto-Populate) ] 🔽
+-- 🔽 [ 안전하게 수정된 🎨 스마트 무기별 스킨 필터링 ] 🔽
 local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
 local weaponToSkins = {}
 local availableWeapons = {"AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher"}
 
 task.spawn(function()
     local CosmeticLib = nil
-    -- 백그라운드에서 라이브러리 찾을 때까지 대기
+    -- 백그라운드에서 라이브러리 안전하게 가져오기 (오류 방지용 pcall)
     while not CosmeticLib do
-        CosmeticLib = _G.CosmeticLibrary or pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+        CosmeticLib = _G.CosmeticLibrary
+        if type(CosmeticLib) ~= "table" then
+            local ok, res = pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+            if ok and type(res) == "table" then CosmeticLib = res end
+        end
         if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then break end
         task.wait(1)
     end
@@ -383,9 +386,8 @@ task.spawn(function()
     for name, data in pairs(CosmeticLib.Cosmetics) do
         if type(data) == "table" and data.Type == "Skin" then
             local lowerName = name:lower()
-            -- 랩, 피니셔 필터링
+            -- 랩, 피니셔, 부적 강제 필터링
             if not lowerName:find("wrap") and not lowerName:find("finisher") and not lowerName:find("charm") then
-                -- 게임 내부 무기 데이터 구조 파싱 (없으면 All Weapons로 통합)
                 local wName = data.Weapon or data.WeaponName or data.Item or "All Weapons"
                 
                 weaponToSkins[wName] = weaponToSkins[wName] or {}
@@ -401,26 +403,32 @@ task.spawn(function()
         availableWeapons = tempWeapons
     end
     
-    -- UI 렌더링될 때까지 기다렸다가 드롭다운 업데이트
+    -- UI 생성될 때까지 안전하게 대기
     while not Options.TargetWeapon do task.wait(0.1) end
     Options.TargetWeapon:SetValues(availableWeapons)
 end)
 
+-- (수정됨) 드롭다운을 모두 먼저 만들고 나서 이벤트를 연결합니다.
 SkinChangerBox:AddDropdown('TargetWeapon', {
     Values = availableWeapons,
     Default = 1,
     Text = '대상 무기 선택'
-}):OnChanged(function(val)
-    local skins = weaponToSkins[val] or {"No Skins Found"}
-    table.sort(skins)
-    Options.TargetSkin:SetValues(skins)
-end)
+})
 
 SkinChangerBox:AddDropdown('TargetSkin', {
     Values = {"Select Weapon First..."},
     Default = 1,
     Text = '적용할 스킨 선택'
 })
+
+-- UI 충돌 픽스: 드롭다운이 100% 생성된 이후에 OnChanged 연결
+Options.TargetWeapon:OnChanged(function(val)
+    local skins = weaponToSkins[val] or {"No Skins Found"}
+    table.sort(skins)
+    if Options.TargetSkin then
+        Options.TargetSkin:SetValues(skins)
+    end
+end)
 
 SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     if not _G.UnlockAllActive then
@@ -951,18 +959,16 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.05) do -- 반응 속도를 0.05초로 단축
+    while task.wait(0.05) do -- 킬 오라 반응 속도를 위한 짧은 딜레이
         local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
 
-        -- 클릭 중(패스트파이어)이거나 오토슛(킬 오라)이 켜져있을 때 작동
         if (isFastFire or isAutoShoot) and UseItemRemote then
             local targetPlayer = getClosestPlayerToMous()
             if targetPlayer and targetPlayer.Character then
                 local hum = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
                 local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
                 
-                -- 대상이 살아있고 위치값이 존재할 때만 발사
                 if hum and hum.Health > 0 and targetHrp then
                     local customArgs = {
                         [1] = "\207\147", [2] = "\026",
