@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA + GOD MODE)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE HEADSHOT + UNLOCK ALL + SKIN CHANGER + KILL AURA + GOD MODE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -42,7 +42,7 @@ FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
 
 -- =============================================================================
--- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION (TOGGLE FIX) ]
+-- [ 🌟 UNLOCK ALL DATA & CORE INITIALIZATION ]
 -- =============================================================================
 _G.UnlockAllActive = false
 _G.HooksInitialized = false
@@ -65,7 +65,6 @@ local function InitUnlockAll()
     _G.DataController = require(controllers:WaitForChild("PlayerDataController", 10))
     pcall(function() _G.FighterController = require(controllers:WaitForChild("FighterController", 10)) end)
 
-    -- // 1. OWNERSHIP SPOOF 
     _G.CosmeticLibrary.OwnsCosmeticNormally = function() return true end
     _G.CosmeticLibrary.OwnsCosmeticUniversally = function() return true end
     _G.CosmeticLibrary.OwnsCosmeticForWeapon = function() return true end
@@ -77,7 +76,6 @@ local function InitUnlockAll()
         return true
     end
 
-    -- // 2. DATA CONTROLLER HOOKS 
     local origGet = _G.DataController.Get
     _G.DataController.Get = function(self, key)
         local data = origGet(self, key)
@@ -115,7 +113,6 @@ local function InitUnlockAll()
         return data
     end
 
-    -- // 3. VIEWMODEL HOOKS
     local ClientItem
     pcall(function() ClientItem = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem) end)
 
@@ -187,7 +184,6 @@ local function InitUnlockAll()
         end
     end
 
-    -- // 4. ITEM LIBRARY IMAGE FIX
     local origGetVMImage = _G.ItemLibrary.GetViewModelImageFromWeaponData
     _G.ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
         if not _G.UnlockAllActive then return origGetVMImage(self, weaponData, highRes) end 
@@ -207,7 +203,6 @@ local function InitUnlockAll()
         return origGetVMImage(self, weaponData, highRes)
     end
 
-    -- // 5. FINISHER FIX
     local ClientEntity
     pcall(function() ClientEntity = require(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientEntity) end)
     if ClientEntity and ClientEntity.ReplicateFromServer then
@@ -264,7 +259,6 @@ local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
 SilentTab:AddToggle('WallBang', { Text = 'Wall Bang (Penetration)', Default = true })
 SilentTab:AddToggle('PredictiveShot', { Text = 'Prediction Engine', Default = true })
-SilentTab:AddToggle('ClosestPart', { Text = 'Auto Target Closest Part', Default = true })
 SilentTab:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = false })
 SilentTab:AddSlider('Radius', { Text = 'FOV Radius Size', Default = 400, Min = 0, Max = 1000, Rounding = 0 })
 SilentTab:AddSlider('HitChance', { Text = 'Hit Chance (%)', Default = 100, Min = 0, Max = 100, Rounding = 0 })
@@ -368,22 +362,12 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
 
--- 🔽 [ UI 충돌을 완벽 방어한 스킨 체인저 및 자동 로드 ] 🔽
 local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
 local weaponToSkins = {}
 local availableWeapons = {"AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher"}
 
-SkinChangerBox:AddDropdown('TargetWeapon', {
-    Values = availableWeapons,
-    Default = 1,
-    Text = '대상 무기 선택'
-})
-
-SkinChangerBox:AddDropdown('TargetSkin', {
-    Values = {"Select Weapon First..."},
-    Default = 1,
-    Text = '적용할 스킨 선택'
-})
+SkinChangerBox:AddDropdown('TargetWeapon', { Values = availableWeapons, Default = 1, Text = '대상 무기 선택' })
+SkinChangerBox:AddDropdown('TargetSkin', { Values = {"Select Weapon First..."}, Default = 1, Text = '적용할 스킨 선택' })
 
 Options.TargetWeapon:OnChanged(function(val)
     pcall(function()
@@ -825,21 +809,32 @@ mt.__namecall = newcclosure(function(self, ...)
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
                 local targetPlayer = getClosestPlayerToMous()
                 if targetPlayer and targetPlayer.Character then
-                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 헤드 강제 조준
+                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 무조건 헤드
                     
                     if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
-                        local hitPos = targetPart.Position
+                        -- 헤드샷 인식을 위한 Y축 오프셋(+0.2) 강제 추가
+                        local hitPos = targetPart.Position + Vector3.new(0, 0.2, 0)
+                        
                         if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                             hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.135) 
                         end
-                        if args[3]["\001"]["\001"] then args[3]["\001"]["\001"]["\001"] = hitPos.X args[3]["\001"]["\001"]["\000"] = hitPos.Y args[3]["\001"]["\001"]["\002"] = hitPos.Z end
-                        if args[3]["\001"]["\000"] then args[3]["\001"]["\000"]["\001"] = hitPos.X args[3]["\001"]["\000"]["\000"] = hitPos.Y args[3]["\001"]["\000"]["\002"] = hitPos.Z end
+                        
+                        -- 실시간 좌표 주입
+                        if args[3]["\001"]["\001"] then 
+                            args[3]["\001"]["\001"]["\001"] = hitPos.X 
+                            args[3]["\001"]["\001"]["\000"] = hitPos.Y 
+                            args[3]["\001"]["\001"]["\002"] = hitPos.Z 
+                        end
+                        if args[3]["\001"]["\000"] then 
+                            args[3]["\001"]["\000"]["\001"] = hitPos.X 
+                            args[3]["\001"]["\000"]["\000"] = hitPos.Y 
+                            args[3]["\001"]["\000"]["\002"] = hitPos.Z 
+                        end
                         args[3]["\001"]["\002"] = targetPart
                     end
                 end
             end
             
-            -- Tracker for Finisher Effect
             if _G.FighterController then
                 task.spawn(function()
                     pcall(function()
@@ -857,7 +852,6 @@ mt.__namecall = newcclosure(function(self, ...)
             end
         end
 
-        -- [ EquipCosmetic: Block Server Packet & Fake Equip ]
         if selfName == "EquipCosmetic" and _G.UnlockAllActive then
             local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
             
@@ -904,7 +898,6 @@ mt.__namecall = newcclosure(function(self, ...)
             return
         end
 
-        -- [ FavoriteCosmetic: Block Server Packet ]
         if selfName == "FavoriteCosmetic" and _G.UnlockAllActive then
             _G.AxiomFavorites[args[1]] = _G.AxiomFavorites[args[1]] or {}
             _G.AxiomFavorites[args[1]][args[2]] = args[3] or nil
@@ -919,7 +912,6 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- [ Inputs & Binds ]
 UserInputService.InputBegan:Connect(function(i, g) 
     if not g then 
         if i.UserInputType == Enum.UserInputType.MouseButton1 then isClicking = true end 
@@ -944,7 +936,7 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ ✅ UI 프리징 방지 및 극한의 오토 슛/패킷 난사 (AOE 헤드샷 전용) 쓰레드 ]
+-- [ ✅ 극한의 헤드샷 고정 오토 슛/패킷 난사 (AOE) 쓰레드 ]
 local UseItemRemote = nil
 task.spawn(function()
     local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
@@ -960,35 +952,29 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.01) do -- 딜레이 극한 감소
+    while task.wait(0.01) do
         local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
         local isKillAll = Toggles and Toggles.KillAllToggle and Toggles.KillAllToggle.Value
 
         if (isFastFire or isAutoShoot) then
-            -- 1. 패킷 막힘 방지: 무기를 강제로 우클릭/좌클릭 상태로 만들어 실제 발사 유도
             local char = LocalPlayer.Character
             local tool = char and char:FindFirstChildOfClass("Tool")
             if tool then
                 pcall(function() tool:Activate() end)
             end
 
-            -- 2. 패킷 난사 로직 (헤드샷 집중 타격)
             if UseItemRemote then
                 local targets = {}
                 
                 if isKillAll then
-                    -- 맵 상의 살아있는 모든 플레이어를 타겟으로 지정
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
                             local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                            if hum and hum.Health > 0 then
-                                table.insert(targets, p)
-                            end
+                            if hum and hum.Health > 0 then table.insert(targets, p) end
                         end
                     end
                 else
-                    -- 단일 타겟팅
                     local targetPlayer = getClosestPlayerToMous()
                     if targetPlayer then table.insert(targets, targetPlayer) end
                 end
@@ -996,20 +982,22 @@ task.spawn(function()
                 local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
 
                 for _, targetPlayer in ipairs(targets) do
-                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 헤드샷 강제 지정
+                    local targetPart = targetPlayer.Character:FindFirstChild("Head")
                     
                     if targetPart then
+                        -- 0 대신 적 머리의 완벽한 실시간 X, Y, Z 좌표 계산 (Y에 +0.2 추가로 확실한 헤드 판정 유도)
+                        local hx, hy, hz = targetPart.Position.X, targetPart.Position.Y + 0.2, targetPart.Position.Z
+                        
                         local customArgs = {
                             [1] = "\207\147", [2] = "\026",
                             [3] = { ["\001"] = {
-                                ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                                ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                                ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                                ["\002"] = targetPart -- 타겟 파트 주입
+                                ["\001"] = { ["\001"] = hx, ["\000"] = hy, ["\003"] = 0, ["\002"] = hz, ["\005"] = 0, ["\004"] = 0 },
+                                ["\000"] = { ["\001"] = hx, ["\000"] = hy, ["\003"] = 0, ["\002"] = hz, ["\005"] = 0, ["\004"] = 0 },
+                                ["\003"] = { ["\001"] = 0,  ["\000"] = 0,  ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
+                                ["\002"] = targetPart -- 타겟 파트를 Head로 명시
                             }}
                         }
                         
-                        -- 한 번의 루프에 설정된 배수만큼 데미지 패킷 난사
                         for i = 1, multiplier do
                             task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
                         end
@@ -1020,7 +1008,7 @@ task.spawn(function()
     end
 end)
 
--- [ 🌟 즉각 탄환 텔레포트 및 갓모드 (Instant Bullet Magnet & Delete Enemy Bullets) ]
+-- [ 🌟 즉각 탄환 텔레포트 (무조건 헤드 타격) 및 갓모드 ]
 workspace.DescendantAdded:Connect(function(d) 
     if not Toggles then return end
     if not d:IsA("BasePart") then return end
@@ -1028,7 +1016,6 @@ workspace.DescendantAdded:Connect(function(d)
     local name = d.Name:lower()
     if name:find("bullet") or name:find("projectile") then
         task.spawn(function()
-            -- 🔽 방어 로직: 내 근처로 날아오는 적의 총알 강제 삭제 (God Mode)
             if Toggles.AntiDamage and Toggles.AntiDamage.Value then
                 local antiHitConn
                 antiHitConn = RunService.RenderStepped:Connect(function()
@@ -1036,7 +1023,6 @@ workspace.DescendantAdded:Connect(function(d)
                     local myChar = LocalPlayer.Character
                     local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
                     if myHrp then
-                        -- 총알이 내 캐릭터 기준 15 Studs 이내로 접근하면 파괴
                         if (d.Position - myHrp.Position).Magnitude < 15 then
                             d:Destroy()
                             antiHitConn:Disconnect()
@@ -1045,7 +1031,6 @@ workspace.DescendantAdded:Connect(function(d)
                 end)
             end
 
-            -- 🔽 공격 로직: 탄환 즉시 텔레포트 (100k 속도)
             if not Toggles.RageBotToggle or not Toggles.RageBotToggle.Value then return end
             
             pcall(function() d.CanCollide = false d.Size = Vector3.new(20, 20, 20) d.Transparency = 0.5 end)
@@ -1057,15 +1042,16 @@ workspace.DescendantAdded:Connect(function(d)
                 local tp = getClosestPlayerToMous()
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
-                    d.CFrame = CFrame.new(head.Position)
-                    d.Velocity = (head.Position - d.Position).Unit * Options.BaseVelocity.Value
+                    -- 몸통과 겹치지 않게 타점을 머리 위쪽(+0.2)으로 띄움
+                    local aimTarget = head.Position + Vector3.new(0, 0.2, 0)
+                    d.CFrame = CFrame.new(aimTarget)
+                    d.Velocity = (aimTarget - d.Position).Unit * Options.BaseVelocity.Value
                 end
             end)
         end)
     end 
 end)
 
--- [ Noclip Logic ]
 RunService.Stepped:Connect(function()
     if Toggles and Toggles.NoclipToggle and Toggles.NoclipToggle.Value and LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -1074,14 +1060,11 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [ MAIN LOOPS ]
 RunService.RenderStepped:Connect(function(dt)
-    -- [ 헤드 히트박스 강제 확장 (Head Hitbox Expander) ]
     if Toggles and Toggles.HitboxExpander and Toggles.HitboxExpander.Value then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
                 local head = p.Character.Head
-                -- 투명하고 거대한 붉은색 헤드 히트박스 생성
                 head.Size = Vector3.new(Options.HitboxSize.Value, Options.HitboxSize.Value, Options.HitboxSize.Value)
                 head.Transparency = 0.8
                 head.BrickColor = BrickColor.new("Bright red")
