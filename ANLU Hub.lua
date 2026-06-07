@@ -254,6 +254,7 @@ AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, D
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
+-- 🔽 [ 오토 슛 (킬 오라) 토글 ] 🔽
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
@@ -364,51 +365,12 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
 
--- 🔽 [ 안전하게 수정된 🎨 스마트 무기별 스킨 필터링 ] 🔽
+-- 🔽 [ UI 충돌을 완벽 방어한 스킨 체인저 및 자동 로드 ] 🔽
 local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
 local weaponToSkins = {}
 local availableWeapons = {"AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher"}
 
-task.spawn(function()
-    local CosmeticLib = nil
-    -- 백그라운드에서 라이브러리 안전하게 가져오기 (오류 방지용 pcall)
-    while not CosmeticLib do
-        CosmeticLib = _G.CosmeticLibrary
-        if type(CosmeticLib) ~= "table" then
-            local ok, res = pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
-            if ok and type(res) == "table" then CosmeticLib = res end
-        end
-        if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then break end
-        task.wait(1)
-    end
-
-    local tempWeapons = {}
-    for name, data in pairs(CosmeticLib.Cosmetics) do
-        if type(data) == "table" and data.Type == "Skin" then
-            local lowerName = name:lower()
-            -- 랩, 피니셔, 부적 강제 필터링
-            if not lowerName:find("wrap") and not lowerName:find("finisher") and not lowerName:find("charm") then
-                local wName = data.Weapon or data.WeaponName or data.Item or "All Weapons"
-                
-                weaponToSkins[wName] = weaponToSkins[wName] or {}
-                table.insert(weaponToSkins[wName], name)
-                
-                if not table.find(tempWeapons, wName) then table.insert(tempWeapons, wName) end
-            end
-        end
-    end
-    
-    if #tempWeapons > 0 then
-        table.sort(tempWeapons)
-        availableWeapons = tempWeapons
-    end
-    
-    -- UI 생성될 때까지 안전하게 대기
-    while not Options.TargetWeapon do task.wait(0.1) end
-    Options.TargetWeapon:SetValues(availableWeapons)
-end)
-
--- (수정됨) 드롭다운을 모두 먼저 만들고 나서 이벤트를 연결합니다.
+-- 드롭다운을 에러 없이 안전하게 먼저 생성합니다
 SkinChangerBox:AddDropdown('TargetWeapon', {
     Values = availableWeapons,
     Default = 1,
@@ -421,13 +383,17 @@ SkinChangerBox:AddDropdown('TargetSkin', {
     Text = '적용할 스킨 선택'
 })
 
--- UI 충돌 픽스: 드롭다운이 100% 생성된 이후에 OnChanged 연결
+-- OnChanged 안에 pcall을 걸어서 어떤 에러가 나더라도 UI 스레드를 다운시키지 않도록 보호합니다
 Options.TargetWeapon:OnChanged(function(val)
-    local skins = weaponToSkins[val] or {"No Skins Found"}
-    table.sort(skins)
-    if Options.TargetSkin then
-        Options.TargetSkin:SetValues(skins)
-    end
+    pcall(function()
+        if not Options.TargetSkin then return end
+        local skins = weaponToSkins[val]
+        if skins and type(skins) == "table" and #skins > 0 then
+            Options.TargetSkin:SetValues(skins)
+        else
+            Options.TargetSkin:SetValues({"No Skins Found"})
+        end
+    end)
 end)
 
 SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
@@ -456,6 +422,43 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     else
         Library:Notify('⚠️ 올바른 무기와 스킨을 선택해주세요.', 3)
     end
+end)
+
+-- 백그라운드에서 데이터를 긁어와서 UI 갱신 (메인 스레드 블로킹 방지)
+task.spawn(function()
+    local CosmeticLib = nil
+    while not CosmeticLib do
+        CosmeticLib = _G.CosmeticLibrary
+        if type(CosmeticLib) ~= "table" then
+            local ok, res = pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+            if ok and type(res) == "table" then CosmeticLib = res end
+        end
+        if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then break end
+        task.wait(1)
+    end
+
+    local tempWeapons = {}
+    for name, data in pairs(CosmeticLib.Cosmetics) do
+        if type(data) == "table" and data.Type == "Skin" then
+            local lowerName = name:lower()
+            if not lowerName:find("wrap") and not lowerName:find("finisher") and not lowerName:find("charm") then
+                local wName = data.Weapon or data.WeaponName or data.Item or "All Weapons"
+                weaponToSkins[wName] = weaponToSkins[wName] or {}
+                table.insert(weaponToSkins[wName], name)
+                if not table.find(tempWeapons, wName) then table.insert(tempWeapons, wName) end
+            end
+        end
+    end
+    
+    if #tempWeapons > 0 then
+        table.sort(tempWeapons)
+        availableWeapons = tempWeapons
+        for _, skins in pairs(weaponToSkins) do table.sort(skins) end
+    end
+    
+    -- UI 갱신도 안전하게 pcall 래핑
+    while not (Options and Options.TargetWeapon) do task.wait(0.1) end
+    pcall(function() Options.TargetWeapon:SetValues(availableWeapons) end)
 end)
 
 -- =============================================================================
