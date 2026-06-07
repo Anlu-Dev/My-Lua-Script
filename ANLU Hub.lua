@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + TOGGLEABLE UNLOCK ALL + SKIN CHANGER)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE STABLE + UNLOCK ALL + SKIN CHANGER + KILL AURA)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -254,6 +254,8 @@ AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, D
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Projectile Redirect', Default = false })
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Minimum Bullet Velocity', Default = 500, Min = 100, Max = 10000, Rounding = 0 })
+-- 🔽 [추가된 오토 슛 (킬 오라) 토글] 🔽
+RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 
 local SilentTab = Tabs.Main:AddRightGroupbox('Hyper Silent Aim')
 SilentTab:AddToggle('SilentEnabled', { Text = 'Enable Silent Aim', Default = true })
@@ -363,49 +365,62 @@ SkinSpooferBox:AddToggle('EnableUnlockAll', { Text = 'Enable Unlock All (In-Game
 end)
 SkinSpooferBox:AddLabel('활성화 시 모든 스킨/피니셔 잠금이 해제됩니다.')
 
--- 🔽 [ 이 부분이 빠졌던 SKIN CHANGER UI 입니다! ] 🔽
+-- 🔽 [ 🎨 스마트 무기별 스킨 필터링 (Auto-Populate) ] 🔽
 local SkinChangerBox = Tabs.Visuals:AddRightGroupbox('Auto-Dump Skin Changer')
+local weaponToSkins = {}
+local availableWeapons = {"AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher"}
 
-local availableWeapons = { "AssaultRifle", "Sniper", "Shotgun", "Pistol", "Knife", "SMG", "RocketLauncher" }
-local availableSkins = { "Load Skins First..." }
+task.spawn(function()
+    local CosmeticLib = nil
+    -- 백그라운드에서 라이브러리 찾을 때까지 대기
+    while not CosmeticLib do
+        CosmeticLib = _G.CosmeticLibrary or pcall(function() return require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
+        if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then break end
+        task.wait(1)
+    end
+
+    local tempWeapons = {}
+    for name, data in pairs(CosmeticLib.Cosmetics) do
+        if type(data) == "table" and data.Type == "Skin" then
+            local lowerName = name:lower()
+            -- 랩, 피니셔 필터링
+            if not lowerName:find("wrap") and not lowerName:find("finisher") and not lowerName:find("charm") then
+                -- 게임 내부 무기 데이터 구조 파싱 (없으면 All Weapons로 통합)
+                local wName = data.Weapon or data.WeaponName or data.Item or "All Weapons"
+                
+                weaponToSkins[wName] = weaponToSkins[wName] or {}
+                table.insert(weaponToSkins[wName], name)
+                
+                if not table.find(tempWeapons, wName) then table.insert(tempWeapons, wName) end
+            end
+        end
+    end
+    
+    if #tempWeapons > 0 then
+        table.sort(tempWeapons)
+        availableWeapons = tempWeapons
+    end
+    
+    -- UI 렌더링될 때까지 기다렸다가 드롭다운 업데이트
+    while not Options.TargetWeapon do task.wait(0.1) end
+    Options.TargetWeapon:SetValues(availableWeapons)
+end)
 
 SkinChangerBox:AddDropdown('TargetWeapon', {
     Values = availableWeapons,
     Default = 1,
     Text = '대상 무기 선택'
-})
+}):OnChanged(function(val)
+    local skins = weaponToSkins[val] or {"No Skins Found"}
+    table.sort(skins)
+    Options.TargetSkin:SetValues(skins)
+end)
 
 SkinChangerBox:AddDropdown('TargetSkin', {
-    Values = availableSkins,
+    Values = {"Select Weapon First..."},
     Default = 1,
     Text = '적용할 스킨 선택'
 })
-
-SkinChangerBox:AddButton('🔄 코스메틱 데이터 긁어오기', function()
-    local CosmeticLib = _G.CosmeticLibrary
-    if type(CosmeticLib) ~= "table" then
-        pcall(function() CosmeticLib = require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 3)) end)
-    end
-
-    if type(CosmeticLib) == "table" and CosmeticLib.Cosmetics then
-        local tempSkins = {}
-        for name, data in pairs(CosmeticLib.Cosmetics) do
-            if type(data) == "table" and (data.Type == "Skin" or data.Type == "Wrap") then
-                table.insert(tempSkins, name)
-            end
-        end
-        table.sort(tempSkins)
-        if #tempSkins > 0 then
-            Options.TargetSkin:SetValues(tempSkins)
-            Library:Notify('✅ 스킨 목록 로드 완료! ('..tostring(#tempSkins)..'개 추출됨)', 3)
-        else
-            Options.TargetSkin:SetValues({"None Found"})
-            Library:Notify('⚠️ 스킨 데이터를 찾지 못했습니다.', 3)
-        end
-    else
-        Library:Notify('❌ 오류: 라이브러리를 찾을 수 없습니다. Unlock All을 먼저 켜보세요.', 4)
-    end
-end)
 
 SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     if not _G.UnlockAllActive then
@@ -416,7 +431,7 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
     local weapon = Options.TargetWeapon.Value
     local skin = Options.TargetSkin.Value
 
-    if weapon and skin and skin ~= "Load Skins First..." and skin ~= "None Found" then
+    if weapon and skin and skin ~= "Select Weapon First..." and skin ~= "No Skins Found" then
         _G.AxiomEquipped[weapon] = _G.AxiomEquipped[weapon] or {}
         _G.AxiomEquipped[weapon].Skin = {
             Name = skin,
@@ -434,7 +449,6 @@ SkinChangerBox:AddButton('🔥 스킨 강제 장착 (Apply)', function()
         Library:Notify('⚠️ 올바른 무기와 스킨을 선택해주세요.', 3)
     end
 end)
--- 🔼 [ SKIN CHANGER UI 끝 ] 🔼
 
 -- =============================================================================
 -- [ 4. WORLD EFFECTS TAB ] 
@@ -921,7 +935,7 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ ✅ UI 프리징/블로킹 해결: 비동기 처리 적용 구간 ]
+-- [ ✅ UI 프리징 방지 및 오토 슛/패킷 난사 쓰레드 ]
 local UseItemRemote = nil
 task.spawn(function()
     local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
@@ -937,21 +951,34 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.1) do
-        if Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking and UseItemRemote then
+    while task.wait(0.05) do -- 반응 속도를 0.05초로 단축
+        local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
+        local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
+
+        -- 클릭 중(패스트파이어)이거나 오토슛(킬 오라)이 켜져있을 때 작동
+        if (isFastFire or isAutoShoot) and UseItemRemote then
             local targetPlayer = getClosestPlayerToMous()
-            local targetHrp = targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local customArgs = {
-                [1] = "\207\147", [2] = "\026",
-                [3] = { ["\001"] = {
-                    ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                    ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
-                    ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                    ["\002"] = targetHrp or workspace
-                }}
-            }
-            for i = 1, math.floor(Options.FireRateMultiplier.Value) do
-                task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
+            if targetPlayer and targetPlayer.Character then
+                local hum = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+                local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                
+                -- 대상이 살아있고 위치값이 존재할 때만 발사
+                if hum and hum.Health > 0 and targetHrp then
+                    local customArgs = {
+                        [1] = "\207\147", [2] = "\026",
+                        [3] = { ["\001"] = {
+                            ["\001"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
+                            ["\000"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 0, ["\005"] = 0, ["\004"] = 0 },
+                            ["\003"] = { ["\001"] = 0, ["\000"] = 0, ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
+                            ["\002"] = targetHrp
+                        }}
+                    }
+                    
+                    local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
+                    for i = 1, multiplier do
+                        task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
+                    end
+                end
             end
         end
     end
