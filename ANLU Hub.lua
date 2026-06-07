@@ -1,5 +1,5 @@
 -- =============================================================================
--- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE HEADSHOT + UNLOCK ALL + SKIN CHANGER + KILL AURA + GOD MODE)
+-- ANLU Hub(Rivals) - PRO EDITION (ULTIMATE HEADSHOT + ZERO DROP + UNLOCK ALL + KILL AURA + GOD MODE)
 -- =============================================================================
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
@@ -248,7 +248,10 @@ AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, D
 
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot (ULTIMATE)')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Instant Bullet Magnet', Default = false })
-RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 5000, Min = 100, Max = 100000, Rounding = 0 })
+-- 🔽 극초음속 1,000만 속도 제한 해제 🔽
+RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 1000000, Min = 100, Max = 10000000, Rounding = 0 })
+-- 🔽 탄도학(낙차) 극복을 위한 헤드 Y축 강제 오프셋 슬라이더 추가 🔽
+RageMainBox:AddSlider('DropCompensation', { Text = 'Headshot Drop Comp (Y-Offset)', Default = 1.5, Min = 0, Max = 10, Rounding = 1 })
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 RageMainBox:AddToggle('KillAllToggle', { Text = 'Enable AOE (Kill All Players)', Default = false })
 RageMainBox:AddToggle('HitboxExpander', { Text = 'Enable Head Hitbox Expander', Default = false })
@@ -792,7 +795,7 @@ local function updateMovement(dt)
     end
 end
 
--- [ 🌟 UNIFIED METATABLE HOOKING (NAME_CALL - SILENT AIM + UNLOCK ALL) ]
+-- [ 🌟 UNIFIED METATABLE HOOKING (NAME_CALL - SILENT AIM + DROP COMPENSATION) ]
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -804,22 +807,21 @@ mt.__namecall = newcclosure(function(self, ...)
     if not checkcaller() and method == "FireServer" then
         local selfName = self.Name
         
-        -- [ UseItem: Silent Aim & Last Weapon Tracker ]
         if selfName == "UseItem" then
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
                 local targetPlayer = getClosestPlayerToMous()
                 if targetPlayer and targetPlayer.Character then
-                    local targetPart = targetPlayer.Character:FindFirstChild("Head") -- 무조건 헤드
+                    local targetPart = targetPlayer.Character:FindFirstChild("Head") 
                     
                     if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
-                        -- 헤드샷 인식을 위한 Y축 오프셋(+0.2) 강제 추가
-                        local hitPos = targetPart.Position + Vector3.new(0, 0.2, 0)
+                        -- 🔽 낙차 보정 슬라이더 값을 Y축에 더해 서버가 몸통이 아닌 헤드로 인식하게 강제 보정
+                        local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
+                        local hitPos = targetPart.Position + Vector3.new(0, dropComp, 0)
                         
                         if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                             hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.135) 
                         end
                         
-                        -- 실시간 좌표 주입
                         if args[3]["\001"]["\001"] then 
                             args[3]["\001"]["\001"]["\001"] = hitPos.X 
                             args[3]["\001"]["\001"]["\000"] = hitPos.Y 
@@ -854,7 +856,6 @@ mt.__namecall = newcclosure(function(self, ...)
 
         if selfName == "EquipCosmetic" and _G.UnlockAllActive then
             local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
-            
             if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
                 if _G.DataController then
                     local inventory = _G.DataController:Get("CosmeticInventory")
@@ -891,7 +892,6 @@ mt.__namecall = newcclosure(function(self, ...)
                     end
                 end
             end
-            
             if _G.DataController then
                 task.defer(function() pcall(function() _G.DataController.CurrentData:Replicate("WeaponInventory") end) end)
             end
@@ -985,8 +985,9 @@ task.spawn(function()
                     local targetPart = targetPlayer.Character:FindFirstChild("Head")
                     
                     if targetPart then
-                        -- 0 대신 적 머리의 완벽한 실시간 X, Y, Z 좌표 계산 (Y에 +0.2 추가로 확실한 헤드 판정 유도)
-                        local hx, hy, hz = targetPart.Position.X, targetPart.Position.Y + 0.2, targetPart.Position.Z
+                        -- 🔽 탄도학(낙차) 극복: 슬라이더 값만큼 Y축 타점 강제 상향
+                        local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
+                        local hx, hy, hz = targetPart.Position.X, targetPart.Position.Y + dropComp, targetPart.Position.Z
                         
                         local customArgs = {
                             [1] = "\207\147", [2] = "\026",
@@ -994,7 +995,7 @@ task.spawn(function()
                                 ["\001"] = { ["\001"] = hx, ["\000"] = hy, ["\003"] = 0, ["\002"] = hz, ["\005"] = 0, ["\004"] = 0 },
                                 ["\000"] = { ["\001"] = hx, ["\000"] = hy, ["\003"] = 0, ["\002"] = hz, ["\005"] = 0, ["\004"] = 0 },
                                 ["\003"] = { ["\001"] = 0,  ["\000"] = 0,  ["\003"] = 0, ["\002"] = 10, ["\005"] = 0, ["\004"] = 1.57 },
-                                ["\002"] = targetPart -- 타겟 파트를 Head로 명시
+                                ["\002"] = targetPart
                             }}
                         }
                         
@@ -1008,7 +1009,7 @@ task.spawn(function()
     end
 end)
 
--- [ 🌟 즉각 탄환 텔레포트 (무조건 헤드 타격) 및 갓모드 ]
+-- [ 🌟 즉각 탄환 텔레포트 (무조건 헤드 타격) 및 반중력/갓모드 ]
 workspace.DescendantAdded:Connect(function(d) 
     if not Toggles then return end
     if not d:IsA("BasePart") then return end
@@ -1035,6 +1036,14 @@ workspace.DescendantAdded:Connect(function(d)
             
             pcall(function() d.CanCollide = false d.Size = Vector3.new(20, 20, 20) d.Transparency = 0.5 end)
             
+            -- 🔽 투사체가 생성되자마자 중력을 아예 받지 않도록 자체 반중력 엔진 장착 🔽
+            if not d:FindFirstChild("AntiGravity") then
+                local bf = Instance.new("BodyForce")
+                bf.Name = "AntiGravity"
+                bf.Force = Vector3.new(0, workspace.Gravity * d:GetMass(), 0)
+                bf.Parent = d
+            end
+            
             local connection
             connection = RunService.RenderStepped:Connect(function()
                 if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
@@ -1042,9 +1051,13 @@ workspace.DescendantAdded:Connect(function(d)
                 local tp = getClosestPlayerToMous()
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
-                    -- 몸통과 겹치지 않게 타점을 머리 위쪽(+0.2)으로 띄움
-                    local aimTarget = head.Position + Vector3.new(0, 0.2, 0)
+                    
+                    -- 🔽 탄도학 오프셋을 여기서도 적용해 총알을 머리 윗공간에 띄운 후 내려꽂음 🔽
+                    local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
+                    local aimTarget = head.Position + Vector3.new(0, dropComp, 0)
+                    
                     d.CFrame = CFrame.new(aimTarget)
+                    -- 속도는 설정된 최고 속도로 가속 (10,000,000 이상)
                     d.Velocity = (aimTarget - d.Position).Unit * Options.BaseVelocity.Value
                 end
             end)
