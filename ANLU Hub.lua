@@ -35,7 +35,7 @@ local Camera = workspace.CurrentCamera
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking, isRightMouseDown = false, false
 local espCache = {}
-local CachedSilentTarget = nil -- ✅ [최적화] 매 프레임 타겟 연산 캐싱용 변수 추가
+local CachedSilentTarget = nil
 
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Color = Color3.fromRGB(255, 0, 50)
@@ -97,21 +97,42 @@ local function InitUnlockAll()
         return data
     end
 
+    -- 🌟 [수정됨] 무기 스탯 강제 변조 (Unlock All 무관하게 작동하도록 설계)
     local origGetWeaponData = _G.DataController.GetWeaponData
     _G.DataController.GetWeaponData = function(self, weaponName)
         local data = origGetWeaponData(self, weaponName)
-        if not _G.UnlockAllActive then return data end 
-        
         if not data then return nil end
-        if _G.AxiomEquipped[weaponName] then
-            local merged = table.clone(data)
+        
+        -- 원본 데이터 훼손 방지를 위한 복제
+        local merged = type(data) == "table" and table.clone(data) or data
+
+        -- [ 1. Unlock All 스킨 변조 ]
+        if _G.UnlockAllActive and _G.AxiomEquipped[weaponName] then
             merged.Name = weaponName
             for cType, cData in pairs(_G.AxiomEquipped[weaponName]) do
                 merged[cType] = cData
             end
-            return merged
         end
-        return data
+
+        -- [ 2. 강제 자동화 및 연사(Rapid Fire) 변조 ]
+        if Toggles then
+            if Toggles.ForceAutomatic and Toggles.ForceAutomatic.Value then
+                merged.Automatic = true
+                merged.IsAutomatic = true
+                merged.FireMode = "Automatic" 
+                merged.BurstCount = 1 -- 점사 버그 방지
+            end
+
+            if Toggles.RapidFireToggle and Toggles.RapidFireToggle.Value then
+                local rapidSpeed = Options.RapidFireDelay and Options.RapidFireDelay.Value or 0.01
+                merged.FireRate = rapidSpeed
+                merged.EquipTime = 0
+                merged.ReloadTime = 0.05
+                merged.ChargeTime = 0
+            end
+        end
+
+        return merged
     end
 
     local ClientItem
@@ -510,11 +531,16 @@ AmbientGroupBox:AddSlider('AtmosphereDensity', { Text = 'Atmosphere Density', De
 end)
 
 -- =============================================================================
--- [ 5. MISC TAB ] 
+-- [ 5. MISC TAB ] (🌟 수정됨: 강제 자동화 및 연사 추가)
 -- =============================================================================
 local WeaponModBox = Tabs.Misc:AddLeftGroupbox('Network Packet Overclock')
 WeaponModBox:AddToggle('FastFireToggle', { Text = 'Enable Multi-Packet Fire', Default = false })
 WeaponModBox:AddSlider('FireRateMultiplier', { Text = 'Packet Replication Multiplier', Default = 10, Min = 1, Max = 50, Rounding = 0 })
+
+WeaponModBox:AddDivider()
+WeaponModBox:AddToggle('ForceAutomatic', { Text = '강제 자동 발사 (Force Auto)', Default = false }):OnChanged(function() InitUnlockAll() end)
+WeaponModBox:AddToggle('RapidFireToggle', { Text = '극한 연사 (Rapid Fire)', Default = false }):OnChanged(function() InitUnlockAll() end)
+WeaponModBox:AddSlider('RapidFireDelay', { Text = '연사 딜레이 (초)', Default = 0.01, Min = 0.00, Max = 0.2, Rounding = 3 })
 
 local InventoryBox = Tabs.Misc:AddLeftGroupbox('Inventory Modification')
 InventoryBox:AddButton('Duplicate Current Weapon x4', function()
@@ -808,7 +834,7 @@ mt.__namecall = newcclosure(function(self, ...)
         
         if selfName == "UseItem" then
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
-                local targetPlayer = CachedSilentTarget -- ✅ [최적화] 매번 연산하지 않고 캐싱된 타겟 사용
+                local targetPlayer = CachedSilentTarget
                 if targetPlayer and targetPlayer.Character then
                     local targetPart = targetPlayer.Character:FindFirstChild("Head") 
                     
@@ -816,7 +842,6 @@ mt.__namecall = newcclosure(function(self, ...)
                         local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
                         local hitPos = targetPart.Position + Vector3.new(0, dropComp, 0)
                         
-                        -- ✅ [최적화] 예측 계수 0.135 -> 0.05로 줄여 명중률 상승
                         if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                             hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.05) 
                         end
@@ -935,7 +960,7 @@ UserInputService.InputEnded:Connect(function(i, g)
     if i.KeyCode == Enum.KeyCode.LeftControl then keyStates.LeftControl = false end
 end)
 
--- [ ✅ 극한의 헤드샷 고정 오토 슛/패킷 난사 (AOE) 쓰레드 ]
+-- [ 🌟 수정됨: 극한의 헤드샷 고정 및 패킷 난사 / 자동 연사(Force Automatic) 쓰레드 ]
 local UseItemRemote = nil
 task.spawn(function()
     local remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
@@ -951,25 +976,29 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.05) do -- ✅ [최적화] 대기 시간 증가로 타임아웃 튕김 방지
+    while task.wait() do -- wait() 로 변경하여 렌더프레임 및 미세 딜레이 지원
         local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
         local isKillAll = Toggles and Toggles.KillAllToggle and Toggles.KillAllToggle.Value
+        local isForceAuto = Toggles and Toggles.ForceAutomatic and Toggles.ForceAutomatic.Value and isClicking
 
-        if (isFastFire or isAutoShoot) then
+        -- 강제 자동 무기 우회 활성화 시 로컬 도구 강제 활성화 반복
+        if (isFastFire or isAutoShoot or isForceAuto) then
             local char = LocalPlayer.Character
             local tool = char and char:FindFirstChildOfClass("Tool")
             if tool then
                 pcall(function() tool:Activate() end)
             end
+        end
 
+        if (isFastFire or isAutoShoot) then
             if UseItemRemote then
                 local targets = {}
                 
                 if isKillAll then
                     local count = 0
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if count >= 5 then break end -- ✅ [최적화] 다중 타겟 과부하 방지 (최대 5명 제한)
+                        if count >= 5 then break end 
                         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
                             local hum = p.Character:FindFirstChildOfClass("Humanoid")
                             if hum and hum.Health > 0 then 
@@ -979,11 +1008,9 @@ task.spawn(function()
                         end
                     end
                 else
-                    -- ✅ [최적화] 매번 연산하지 않고 캐싱된 타겟 불러오기
                     if CachedSilentTarget then table.insert(targets, CachedSilentTarget) end
                 end
 
-                -- ✅ [최적화] 패킷 과부하를 막기 위해 최대 5배로 제한
                 local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
                 multiplier = math.clamp(multiplier, 1, 5)
 
@@ -1006,11 +1033,18 @@ task.spawn(function()
                         
                         for i = 1, multiplier do
                             task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
-                            task.wait(0.01) -- ✅ [최적화] 패킷 사이 미세 딜레이
+                            task.wait(0.01)
                         end
                     end
                 end
             end
+        end
+
+        -- Rapid Fire 속도 조절 딜레이
+        if Toggles and Toggles.RapidFireToggle and Toggles.RapidFireToggle.Value then
+            task.wait(Options.RapidFireDelay.Value)
+        else
+            task.wait(0.05)
         end
     end
 end)
@@ -1053,7 +1087,7 @@ workspace.DescendantAdded:Connect(function(d)
             connection = RunService.RenderStepped:Connect(function()
                 if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
                 
-                local tp = CachedSilentTarget -- ✅ [최적화] 캐싱된 타겟 사용
+                local tp = CachedSilentTarget 
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
                     
@@ -1077,7 +1111,6 @@ RunService.Stepped:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function(dt)
-    -- ✅ [최적화] RenderStepped 최상단에서 매 프레임 타겟 갱신 (캐싱)
     if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value then
         CachedSilentTarget = getClosestPlayerToMous()
     else
@@ -1109,7 +1142,6 @@ RunService.RenderStepped:Connect(function(dt)
     
     pcall(updateEsp)
     
-    -- ✅ [최적화] 뷰모델(카메라) Aimbot 보정 (낙차 오프셋 일치화 및 부드러운 Lerp)
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
         local targetPlayer = CachedSilentTarget
         if targetPlayer and targetPlayer.Character then
@@ -1142,7 +1174,6 @@ Players.PlayerRemoving:Connect(function(player)
         espCache[player] = nil
     end
     
-    -- ✅ [최적화] 플레이어 나갈 때 캐시된 타겟도 비워주기
     if CachedSilentTarget == player then
         CachedSilentTarget = nil
     end
