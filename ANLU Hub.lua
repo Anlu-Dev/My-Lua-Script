@@ -35,6 +35,7 @@ local Camera = workspace.CurrentCamera
 local angle, antiAimAngle, lastStrafeTime, alternateVoid, lastNormalCFrame = 0, 0, 0, false, nil
 local isClicking, isRightMouseDown = false, false
 local espCache = {}
+local CachedSilentTarget = nil -- ✅ [최적화] 매 프레임 타겟 연산 캐싱용 변수 추가
 
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Color = Color3.fromRGB(255, 0, 50)
@@ -243,14 +244,12 @@ end
 -- =============================================================================
 local AimbotTab = Tabs.Main:AddLeftGroupbox('Camera Lock-on Aimbot')
 AimbotTab:AddToggle('AimbotEnabled', { Text = 'Enable Camera Aimbot', Default = false })
-AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 20, Rounding = 1 })
+AimbotTab:AddSlider('Smoothness', { Text = 'Aimbot Smoothing', Default = 8, Min = 1, Max = 100, Rounding = 1 })
 AimbotTab:AddDropdown('AimbotPart', { Values = { 'Head', 'HumanoidRootPart' }, Default = 1, Text = 'Target Part' })
 
 local RageMainBox = Tabs.Main:AddLeftGroupbox('Hydra Rage Bot (ULTIMATE)')
 RageMainBox:AddToggle('RageBotToggle', { Text = 'Enable Instant Bullet Magnet', Default = false })
--- 🔽 극초음속 1,000만 속도 제한 해제 🔽
 RageMainBox:AddSlider('BaseVelocity', { Text = 'Bullet Speed Multiplier', Default = 1000000, Min = 100, Max = 10000000, Rounding = 0 })
--- 🔽 탄도학(낙차) 극복을 위한 헤드 Y축 강제 오프셋 슬라이더 추가 🔽
 RageMainBox:AddSlider('DropCompensation', { Text = 'Headshot Drop Comp (Y-Offset)', Default = 1.5, Min = 0, Max = 10, Rounding = 1 })
 RageMainBox:AddToggle('AutoShootToggle', { Text = 'Enable Auto-Shoot (Kill Aura)', Default = false })
 RageMainBox:AddToggle('KillAllToggle', { Text = 'Enable AOE (Kill All Players)', Default = false })
@@ -809,17 +808,17 @@ mt.__namecall = newcclosure(function(self, ...)
         
         if selfName == "UseItem" then
             if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value and math.random(1, 100) <= Options.HitChance.Value then
-                local targetPlayer = getClosestPlayerToMous()
+                local targetPlayer = CachedSilentTarget -- ✅ [최적화] 매번 연산하지 않고 캐싱된 타겟 사용
                 if targetPlayer and targetPlayer.Character then
                     local targetPart = targetPlayer.Character:FindFirstChild("Head") 
                     
                     if targetPart and args[3] and type(args[3]) == "table" and args[3]["\001"] then
-                        -- 🔽 낙차 보정 슬라이더 값을 Y축에 더해 서버가 몸통이 아닌 헤드로 인식하게 강제 보정
                         local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
                         local hitPos = targetPart.Position + Vector3.new(0, dropComp, 0)
                         
+                        -- ✅ [최적화] 예측 계수 0.135 -> 0.05로 줄여 명중률 상승
                         if Toggles.PredictiveShot and Toggles.PredictiveShot.Value and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                            hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.135) 
+                            hitPos = hitPos + (targetPlayer.Character.HumanoidRootPart.Velocity * 0.05) 
                         end
                         
                         if args[3]["\001"]["\001"] then 
@@ -952,7 +951,7 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    while task.wait(0.01) do
+    while task.wait(0.05) do -- ✅ [최적화] 대기 시간 증가로 타임아웃 튕김 방지
         local isFastFire = Toggles and Toggles.FastFireToggle and Toggles.FastFireToggle.Value and isClicking
         local isAutoShoot = Toggles and Toggles.AutoShootToggle and Toggles.AutoShootToggle.Value
         local isKillAll = Toggles and Toggles.KillAllToggle and Toggles.KillAllToggle.Value
@@ -968,24 +967,30 @@ task.spawn(function()
                 local targets = {}
                 
                 if isKillAll then
+                    local count = 0
                     for _, p in ipairs(Players:GetPlayers()) do
+                        if count >= 5 then break end -- ✅ [최적화] 다중 타겟 과부하 방지 (최대 5명 제한)
                         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
                             local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                            if hum and hum.Health > 0 then table.insert(targets, p) end
+                            if hum and hum.Health > 0 then 
+                                table.insert(targets, p)
+                                count = count + 1
+                            end
                         end
                     end
                 else
-                    local targetPlayer = getClosestPlayerToMous()
-                    if targetPlayer then table.insert(targets, targetPlayer) end
+                    -- ✅ [최적화] 매번 연산하지 않고 캐싱된 타겟 불러오기
+                    if CachedSilentTarget then table.insert(targets, CachedSilentTarget) end
                 end
 
+                -- ✅ [최적화] 패킷 과부하를 막기 위해 최대 5배로 제한
                 local multiplier = (Options and Options.FireRateMultiplier) and math.floor(Options.FireRateMultiplier.Value) or 1
+                multiplier = math.clamp(multiplier, 1, 5)
 
                 for _, targetPlayer in ipairs(targets) do
                     local targetPart = targetPlayer.Character:FindFirstChild("Head")
                     
                     if targetPart then
-                        -- 🔽 탄도학(낙차) 극복: 슬라이더 값만큼 Y축 타점 강제 상향
                         local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
                         local hx, hy, hz = targetPart.Position.X, targetPart.Position.Y + dropComp, targetPart.Position.Z
                         
@@ -1001,6 +1006,7 @@ task.spawn(function()
                         
                         for i = 1, multiplier do
                             task.spawn(function() pcall(function() UseItemRemote:FireServer(unpack(customArgs)) end) end)
+                            task.wait(0.01) -- ✅ [최적화] 패킷 사이 미세 딜레이
                         end
                     end
                 end
@@ -1036,7 +1042,6 @@ workspace.DescendantAdded:Connect(function(d)
             
             pcall(function() d.CanCollide = false d.Size = Vector3.new(20, 20, 20) d.Transparency = 0.5 end)
             
-            -- 🔽 투사체가 생성되자마자 중력을 아예 받지 않도록 자체 반중력 엔진 장착 🔽
             if not d:FindFirstChild("AntiGravity") then
                 local bf = Instance.new("BodyForce")
                 bf.Name = "AntiGravity"
@@ -1048,16 +1053,14 @@ workspace.DescendantAdded:Connect(function(d)
             connection = RunService.RenderStepped:Connect(function()
                 if not d or not d.Parent or not Toggles.RageBotToggle.Value then connection:Disconnect() return end
                 
-                local tp = getClosestPlayerToMous()
+                local tp = CachedSilentTarget -- ✅ [최적화] 캐싱된 타겟 사용
                 if tp and tp.Character and tp.Character:FindFirstChild("Head") then
                     local head = tp.Character.Head
                     
-                    -- 🔽 탄도학 오프셋을 여기서도 적용해 총알을 머리 윗공간에 띄운 후 내려꽂음 🔽
                     local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
                     local aimTarget = head.Position + Vector3.new(0, dropComp, 0)
                     
                     d.CFrame = CFrame.new(aimTarget)
-                    -- 속도는 설정된 최고 속도로 가속 (10,000,000 이상)
                     d.Velocity = (aimTarget - d.Position).Unit * Options.BaseVelocity.Value
                 end
             end)
@@ -1074,6 +1077,13 @@ RunService.Stepped:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function(dt)
+    -- ✅ [최적화] RenderStepped 최상단에서 매 프레임 타겟 갱신 (캐싱)
+    if Toggles and Toggles.SilentEnabled and Toggles.SilentEnabled.Value then
+        CachedSilentTarget = getClosestPlayerToMous()
+    else
+        CachedSilentTarget = nil
+    end
+
     if Toggles and Toggles.HitboxExpander and Toggles.HitboxExpander.Value then
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
@@ -1099,11 +1109,17 @@ RunService.RenderStepped:Connect(function(dt)
     
     pcall(updateEsp)
     
+    -- ✅ [최적화] 뷰모델(카메라) Aimbot 보정 (낙차 오프셋 일치화 및 부드러운 Lerp)
     if Toggles.AimbotEnabled.Value and isRightMouseDown then
-        local targetPlayer = getClosestPlayerToMous()
+        local targetPlayer = CachedSilentTarget
         if targetPlayer and targetPlayer.Character then
             local targetPart = targetPlayer.Character:FindFirstChild(Options.AimbotPart.Value)
-            if targetPart then Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPart.Position), math.clamp(dt * (21 - Options.Smoothness.Value), 0, 1)) end
+            if targetPart then 
+                local dropComp = (Options.DropCompensation and Options.DropCompensation.Value) or 1.5
+                local targetPos = targetPart.Position + Vector3.new(0, dropComp, 0)
+                local smoothFactor = math.clamp(Options.Smoothness.Value / 100, 0.01, 1)
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPos), smoothFactor) 
+            end
         end
     end
 end)
@@ -1124,6 +1140,11 @@ Players.PlayerRemoving:Connect(function(player)
             if espCache[player].Bones then for _, l in ipairs(espCache[player].Bones) do l:Destroy() end end
         end)
         espCache[player] = nil
+    end
+    
+    -- ✅ [최적화] 플레이어 나갈 때 캐시된 타겟도 비워주기
+    if CachedSilentTarget == player then
+        CachedSilentTarget = nil
     end
 end)
 
